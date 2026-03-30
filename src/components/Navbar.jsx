@@ -4,6 +4,22 @@ const navLinks = ['The Roast', 'Heritage', 'Brew Guide', 'Locations']
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  const handleNavClick = (event, targetId) => {
+    event.preventDefault()
+    const target = document.getElementById(targetId)
+    if (!target) {
+      return
+    }
+
+    target.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }
 
   return (
     <header className="sticky top-0 z-50 px-4 pt-4 md:px-8">
@@ -20,13 +36,14 @@ function Navbar() {
             href="#top"
             className="text-base font-semibold tracking-[0.08em] uppercase"
             style={{ color: 'var(--primary)' }}
+            onClick={(event) => handleNavClick(event, 'top')}
           >
             Skena Coffee
           </a>
 
           <button
             type="button"
-            className="inline-flex h-10 items-center rounded px-3 text-sm font-medium md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded md:hidden"
             style={{
               color: 'var(--on_surface)',
               backgroundColor:
@@ -37,7 +54,26 @@ function Navbar() {
             aria-controls="mobile-nav"
             aria-label="Toggle navigation menu"
           >
-            Menu
+            <span className="relative block h-4 w-5">
+              <span
+                className="absolute top-0 left-0 h-[2px] w-5 rounded bg-[var(--on_surface)] transition-all duration-300"
+                style={{
+                  transform: isOpen ? 'translateY(7px) rotate(45deg)' : 'none',
+                }}
+              />
+              <span
+                className="absolute top-[7px] left-0 h-[2px] w-5 rounded bg-[var(--on_surface)] transition-all duration-300"
+                style={{
+                  opacity: isOpen ? 0 : 1,
+                }}
+              />
+              <span
+                className="absolute top-[14px] left-0 h-[2px] w-5 rounded bg-[var(--on_surface)] transition-all duration-300"
+                style={{
+                  transform: isOpen ? 'translateY(-7px) rotate(-45deg)' : 'none',
+                }}
+              />
+            </span>
           </button>
 
           <div className="hidden items-center gap-8 md:flex">
@@ -47,6 +83,9 @@ function Navbar() {
                 href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
                 className="text-sm font-medium tracking-[0.04em]"
                 style={{ color: 'var(--on_surface)' }}
+                onClick={(event) =>
+                  handleNavClick(event, link.toLowerCase().replace(/\s+/g, '-'))
+                }
               >
                 {link}
               </a>
@@ -75,7 +114,10 @@ function Navbar() {
                   href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
                   className="text-sm font-medium tracking-[0.04em]"
                   style={{ color: 'var(--on_surface)' }}
-                  onClick={() => setIsOpen(false)}
+                  onClick={(event) => {
+                    handleNavClick(event, link.toLowerCase().replace(/\s+/g, '-'))
+                    setIsOpen(false)
+                  }}
                 >
                   {link}
                 </a>

@@ -1,6 +1,7 @@
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import MenuHighlights from './components/MenuHighlights'
+import About from './components/About'
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
       <Navbar />
       <Hero />
       <MenuHighlights />
+      <About />
     </main>
   )
 }

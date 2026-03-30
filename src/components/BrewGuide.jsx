@@ -54,7 +54,7 @@ function BrewGuide() {
   return (
     <section id="brew-guide" className="bg-[#f3ede2] px-8 py-32">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-14 lg:grid-cols-12">
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-4 lg:order-2">
           <span className="mb-8 block font-['Plus_Jakarta_Sans'] text-sm font-bold tracking-[0.12em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
             Brew Guide
           </span>
@@ -63,7 +63,7 @@ function BrewGuide() {
           </h2>
         </div>
 
-        <div className="space-y-4 lg:col-span-8">
+        <div className="space-y-4 lg:col-span-8 lg:order-1">
           {brewSteps.map((step) => {
             const measured = measuredLayouts.find((item) => item.id === step.id)
             const isOpen = openId === step.id

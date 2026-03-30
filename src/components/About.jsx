@@ -55,8 +55,21 @@ function About() {
       dragging: false,
     })),
   )
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  )
   const [columnWidth, setColumnWidth] = useState(0)
   const [orbRects, setOrbRects] = useState([])
+  const activeCount = isMobile ? 1 : ACTIVE_BEANS.length
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   useEffect(() => {
     let frameId = 0
@@ -73,7 +86,7 @@ function About() {
       lastTime = now
       const draggingIndex = dragRef.current?.index ?? -1
 
-      for (let index = 0; index < activeBeansRef.current.length; index += 1) {
+      for (let index = 0; index < activeCount; index += 1) {
         const bean = activeBeansRef.current[index]
         const size = activeSizeRefs.current[index] ?? {
           width: ACTIVE_BEANS[index].size,
@@ -83,7 +96,7 @@ function About() {
         const maxY = Math.max(sectionRect.height - size.height, 0)
         const isDraggingThisBean = index === draggingIndex
 
-        if (!bean.paused && !isDraggingThisBean) {
+        if (!bean.paused && !isDraggingThisBean && !(isMobile && index === 0)) {
           bean.x += bean.vx * dt
           bean.y += bean.vy * dt
 
@@ -110,7 +123,7 @@ function About() {
           x: bean.x,
           y: bean.y,
           paused: bean.paused,
-          dragging: index === draggingIndex,
+          dragging: index === draggingIndex && index < activeCount,
         })),
       )
 
@@ -119,7 +132,13 @@ function About() {
 
     frameId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frameId)
-  }, [])
+  }, [activeCount, isMobile])
+
+  useEffect(() => {
+    if (dragRef.current && dragRef.current.index >= activeCount) {
+      dragRef.current = null
+    }
+  }, [activeCount])
 
   useEffect(() => {
     const measure = () => {
@@ -139,7 +158,7 @@ function About() {
       }
 
       const nextRectangles = []
-      for (let index = 0; index < activeImageRefs.current.length; index += 1) {
+      for (let index = 0; index < activeCount; index += 1) {
         const imageRect = activeImageRefs.current[index]?.getBoundingClientRect()
         if (!imageRect) {
           continue
@@ -191,12 +210,15 @@ function About() {
       observer.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [activeRender])
+  }, [activeCount, activeRender])
 
   useEffect(() => {
     const onPointerMove = (event) => {
       if (!dragRef.current) {
         return
+      }
+      if (event.pointerType === 'touch' && event.cancelable) {
+        event.preventDefault()
       }
 
       const sectionRect = sectionRef.current?.getBoundingClientRect()
@@ -207,6 +229,9 @@ function About() {
       const deltaX = event.clientX - dragRef.current.startX
       const deltaY = event.clientY - dragRef.current.startY
       const targetIndex = dragRef.current.index
+      if (targetIndex >= activeCount) {
+        return
+      }
       const size = activeSizeRefs.current[targetIndex] ?? {
         width: ACTIVE_BEANS[targetIndex]?.size ?? 120,
         height: ACTIVE_BEANS[targetIndex]?.size ?? 120,
@@ -228,6 +253,10 @@ function About() {
 
       const wasClick = !dragRef.current.moved
       const targetIndex = dragRef.current.index
+      if (targetIndex >= activeCount) {
+        dragRef.current = null
+        return
+      }
       const targetBean = activeBeansRef.current[targetIndex]
       if (wasClick) {
         targetBean.paused = !dragRef.current.wasPaused
@@ -260,7 +289,7 @@ function About() {
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('pointercancel', onPointerUp)
     }
-  }, [])
+  }, [activeCount])
 
   const routedLayout = useAboutOrbLayout({
     paragraphs: ABOUT_PARAGRAPHS,
@@ -273,7 +302,7 @@ function About() {
   return (
     <section id="heritage" className="overflow-hidden bg-[var(--surface)] px-8 py-32">
       <div ref={sectionRef} className="relative mx-auto max-w-7xl">
-        {activeRender.map((bean, index) => (
+        {activeRender.slice(0, activeCount).map((bean, index) => (
           <MotionDiv
             key={`active-bean-${index}`}
             className={`absolute top-0 left-0 z-20 ${
@@ -282,9 +311,14 @@ function About() {
             style={{
               transform: `translate3d(${bean.x}px, ${bean.y}px, 0) rotate(${ACTIVE_BEANS[index].rotation}deg)`,
               opacity: 0.94,
+              touchAction: 'none',
             }}
             onPointerDown={(event) => {
               event.preventDefault()
+              event.stopPropagation()
+              if (event.currentTarget.setPointerCapture) {
+                event.currentTarget.setPointerCapture(event.pointerId)
+              }
               const targetBean = activeBeansRef.current[index]
               dragRef.current = {
                 index,

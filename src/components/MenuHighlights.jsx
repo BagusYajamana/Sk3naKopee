@@ -100,7 +100,7 @@ function MenuHighlights() {
   return (
     <section
       id="the-roast"
-      className="px-8 py-24"
+      className="px-8 py-28"
       style={{ backgroundColor: '#f9f3e8' }}
     >
       <div className="mx-auto max-w-7xl">

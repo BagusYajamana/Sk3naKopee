@@ -424,7 +424,7 @@ function About() {
         </div>
 
         <div
-          className="pointer-events-none absolute right-2 bottom-2 z-30 px-2 py-1 font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-[0.1em] uppercase"
+          className="pointer-events-none absolute right-4 bottom-4 z-30 px-2 py-1 font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-[0.1em] uppercase"
           style={{ color: 'color-mix(in srgb, var(--on_surface) 40%, transparent)' }}
         >
           drag the beans  click to pause

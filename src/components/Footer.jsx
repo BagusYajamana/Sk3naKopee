@@ -63,7 +63,7 @@ function Footer() {
                 className="h-9 w-9 bg-transparent font-['Plus_Jakarta_Sans'] text-lg font-semibold leading-none text-[var(--primary)]"
                 aria-label="Submit email"
               >
-                →
+                &rarr;
               </button>
             </form>
           </div>
@@ -71,7 +71,7 @@ function Footer() {
 
         <div className="mt-16 flex flex-wrap items-center justify-between gap-4">
           <p className="font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.1em] text-[color:color-mix(in_srgb,var(--on_surface)_50%,#4f453f_50%)] uppercase">
-            © 2026 SKENA COFFEE  ALL RIGHTS RESERVED
+            (c) 2026 SKENA COFFEE  ALL RIGHTS RESERVED
           </p>
           <div className="flex gap-6">
             <a href="#" className="font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.1em] text-[color:color-mix(in_srgb,var(--on_surface)_82%,#4f453f_18%)] uppercase no-underline hover:underline">

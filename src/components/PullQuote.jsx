@@ -54,7 +54,7 @@ function PullQuote() {
   })
 
   return (
-    <section className="bg-[var(--surface)] px-8 py-36">
+    <section className="bg-[var(--surface)] px-8 py-32">
       <div className="mx-auto max-w-7xl">
         <div id="pullquote-stage" className="relative">
           <div className="float-right ml-10 mb-8 hidden w-[30%] md:block">

@@ -1,5 +1,11 @@
+import Navbar from './components/Navbar'
+
 function App() {
-  return <main className="min-h-screen bg-[var(--surface)]" />
+  return (
+    <main id="top" className="min-h-screen bg-[var(--surface)]">
+      <Navbar />
+    </main>
+  )
 }
 
 export default App

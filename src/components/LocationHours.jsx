@@ -1,3 +1,5 @@
+import locationImage from '../assets/images/location-image.png'
+
 function LocationHours() {
   const hours = [
     { day: 'Monday - Friday', time: '08:00 - 22:00' },
@@ -44,9 +46,11 @@ function LocationHours() {
           </div>
 
           <div className="organic-mask-1 h-[280px] overflow-hidden bg-[#d8d1c6]">
-            <div className="flex h-full items-center justify-center font-['Plus_Jakarta_Sans'] text-[11px] font-semibold tracking-[0.14em] text-[color:color-mix(in_srgb,var(--on_surface)_52%,#4f453f_48%)] uppercase">
-              Map Placeholder
-            </div>
+            <img
+              src={locationImage}
+              alt="Map lokasi Skena Coffee, Bandung"
+              className="h-full w-full object-cover"
+            />
           </div>
         </div>
 

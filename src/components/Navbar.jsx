@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const navLinks = ['Heritage', 'The Roast', 'Brew Guide', 'Locations']
+const navLinks = ['The Roast', 'Heritage', 'Brew Guide', 'Locations']
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false)

@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
 
 function MenuHighlights() {
@@ -40,7 +41,61 @@ function MenuHighlights() {
     [],
   )
 
+  const floatProfiles = useMemo(
+    () =>
+      menuItems.map((item, index) => {
+        const seed = item.name
+          .split('')
+          .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+        const distance = 8 + (seed % 11)
+        const duration = 12 + ((seed + index) % 8)
+        const delay = (seed % 5) * 0.8
+        return { distance, duration, delay }
+      }),
+    [menuItems],
+  )
+
   const layouts = useMenuHighlightLayout(menuItems)
+  const MotionArticle = motion.article
+  const trackRef = useRef(null)
+  const cardRefs = useRef([])
+  const [travelDistances, setTravelDistances] = useState(() =>
+    menuItems.map(() => 0),
+  )
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const trackWidth = trackRef.current?.clientWidth ?? 0
+      const nextDistances = menuItems.map((_, index) => {
+        const cardWidth = cardRefs.current[index]?.offsetWidth ?? 0
+        return Math.max(trackWidth - cardWidth, 0)
+      })
+
+      setTravelDistances((current) => {
+        const isSame =
+          current.length === nextDistances.length &&
+          current.every((value, index) => value === nextDistances[index])
+        return isSame ? current : nextDistances
+      })
+    }
+
+    measure()
+    const resizeObserver = new ResizeObserver(measure)
+    if (trackRef.current) {
+      resizeObserver.observe(trackRef.current)
+    }
+    cardRefs.current.forEach((element) => {
+      if (element) {
+        resizeObserver.observe(element)
+      }
+    })
+    window.addEventListener('resize', measure)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [menuItems])
 
   return (
     <section
@@ -58,20 +113,34 @@ function MenuHighlights() {
           </span>
         </div>
 
-        <div className="space-y-6">
+        <div ref={trackRef} className="space-y-6">
           {menuItems.map((item, index) => {
             const layout = layouts[index]
             const textWidth = layout?.width ?? 360
             const measuredHeight = layout?.height ?? 120
+            const travel = travelDistances[index] ?? 0
 
             return (
-              <article
+              <MotionArticle
                 key={item.name}
+                ref={(element) => {
+                  cardRefs.current[index] = element
+                }}
                 className="w-fit max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
                 style={{
                   backgroundColor: '#ffffff',
                   boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
                   width: `min(100%, ${textWidth + 260}px)`,
+                }}
+                animate={{
+                  x: travel > 0 ? [0, travel, 0] : 0,
+                }}
+                transition={{
+                  duration: (floatProfiles[index]?.duration ?? 14) + travel / 90,
+                  repeat: Number.POSITIVE_INFINITY,
+                  repeatType: 'loop',
+                  ease: 'easeInOut',
+                  delay: floatProfiles[index]?.delay ?? 0,
                 }}
               >
                 <span className="mb-2 block font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.2em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
@@ -101,7 +170,7 @@ function MenuHighlights() {
                     </p>
                   </div>
                 </div>
-              </article>
+              </MotionArticle>
             )
           })}
         </div>

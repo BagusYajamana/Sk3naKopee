@@ -61,7 +61,7 @@ function layoutParagraphAroundObstacle(
   lineHeight,
   columnWidth,
   startY,
-  obstacle,
+  obstacles,
 ) {
   const lines = []
   let cursor = { segmentIndex: 0, graphemeIndex: 0 }
@@ -70,10 +70,16 @@ function layoutParagraphAroundObstacle(
   while (true) {
     const bandTop = y
     const bandBottom = y + lineHeight
-    const interval = getBlockedIntervalForBand(obstacle, bandTop, bandBottom)
+    const blocked = []
+    for (let i = 0; i < obstacles.length; i += 1) {
+      const interval = getBlockedIntervalForBand(obstacles[i], bandTop, bandBottom)
+      if (interval) {
+        blocked.push(interval)
+      }
+    }
     const slots = carveSlots(
       { left: 0, right: columnWidth },
-      interval ? [interval] : [],
+      blocked,
     )
 
     if (slots.length === 0) {
@@ -117,7 +123,7 @@ function layoutParagraphAroundObstacle(
 export function useAboutOrbLayout({
   paragraphs,
   columnWidth,
-  orbRect,
+  orbRects,
   lineHeight = 34,
   paragraphGap = 30,
 }) {
@@ -134,21 +140,21 @@ export function useAboutOrbLayout({
       return { lines: [], height: 0 }
     }
 
-    const hasOverlap =
-      orbRect &&
-      orbRect.width > 0 &&
-      orbRect.height > 0 &&
-      orbRect.x < columnWidth &&
-      orbRect.x + orbRect.width > 0
-
-    const constrainedOrbRect = hasOverlap
-      ? {
-          x: clamp(orbRect.x, 0, columnWidth),
-          y: Math.max(orbRect.y, 0),
-          width: clamp(orbRect.width, 0, columnWidth),
-          height: Math.max(orbRect.height, 0),
-        }
-      : null
+    const constrainedOrbRects = (orbRects ?? [])
+      .filter(
+        (orbRect) =>
+          orbRect &&
+          orbRect.width > 0 &&
+          orbRect.height > 0 &&
+          orbRect.x < columnWidth &&
+          orbRect.x + orbRect.width > 0,
+      )
+      .map((orbRect) => ({
+        x: clamp(orbRect.x, 0, columnWidth),
+        y: Math.max(orbRect.y, 0),
+        width: clamp(orbRect.width, 0, columnWidth),
+        height: Math.max(orbRect.height, 0),
+      }))
 
     const outputLines = []
     let y = 0
@@ -160,7 +166,7 @@ export function useAboutOrbLayout({
         lineHeight,
         columnWidth,
         y,
-        constrainedOrbRect,
+        constrainedOrbRects,
       )
       outputLines.push(...paragraphLayout.lines)
       y = paragraphLayout.endY + paragraphGap
@@ -173,7 +179,7 @@ export function useAboutOrbLayout({
   }, [
     columnWidth,
     lineHeight,
-    orbRect,
+    orbRects,
     paragraphGap,
     preparedParagraphs,
   ])

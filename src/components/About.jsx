@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAboutOrbLayout } from '../hooks/useAboutOrbLayout'
 
 const ABOUT_PARAGRAPHS = [
@@ -7,7 +7,22 @@ const ABOUT_PARAGRAPHS = [
   "Every cup served in our sanctuary is a culmination of careful choices, from roast curves that respect origin character to the exact water profile in each manual brew. We choose the slower method because ritual is where clarity appears, and clarity is what makes each sip memorable.",
 ]
 
-const DEFAULT_BEAN_SIZE = 170
+const ACTIVE_BEANS = [
+  { x: 120, y: 90, vx: 16, vy: 13, size: 170, rotation: 4, interactive: true },
+  { x: 430, y: 160, vx: -12, vy: 10, size: 148, rotation: 48, interactive: false },
+  { x: 640, y: 60, vx: 11, vy: -12, size: 136, rotation: 92, interactive: false },
+]
+
+const DECORATIVE_BEANS = [
+  { left: 24, bottom: 18, size: 40, rotation: 19, opacity: 0.3, driftX: 18, driftY: 14, duration: 22 },
+  { left: 78, bottom: 46, size: 52, rotation: 34, opacity: 0.34, driftX: 14, driftY: 10, duration: 19 },
+  { left: 146, bottom: 30, size: 60, rotation: 63, opacity: 0.33, driftX: 16, driftY: 12, duration: 24 },
+  { left: 220, bottom: 64, size: 74, rotation: 77, opacity: 0.31, driftX: 20, driftY: 15, duration: 27 },
+  { left: 302, bottom: 20, size: 88, rotation: 106, opacity: 0.28, driftX: 12, driftY: 9, duration: 30 },
+  { left: 44, bottom: 102, size: 46, rotation: 121, opacity: 0.35, driftX: 15, driftY: 11, duration: 23 },
+  { left: 172, bottom: 126, size: 66, rotation: 143, opacity: 0.29, driftX: 17, driftY: 13, duration: 26 },
+  { left: 284, bottom: 112, size: 84, rotation: 159, opacity: 0.27, driftX: 13, driftY: 8, duration: 29 },
+]
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
@@ -17,29 +32,31 @@ function About() {
   const MotionDiv = motion.div
   const sectionRef = useRef(null)
   const textStageRef = useRef(null)
-  const orbImageRef = useRef(null)
+  const activeImageRefs = useRef([])
+  const activeSizeRefs = useRef(
+    ACTIVE_BEANS.map((bean) => ({ width: bean.size, height: bean.size })),
+  )
   const dragRef = useRef(null)
-  const textBoxRef = useRef(null)
-  const beanSizeRef = useRef({
-    width: DEFAULT_BEAN_SIZE,
-    height: DEFAULT_BEAN_SIZE,
-  })
-  const orbRef = useRef({
-    x: 120,
-    y: 90,
-    vx: 46,
-    vy: 38,
-    paused: false,
-  })
+  const activeBeansRef = useRef(
+    ACTIVE_BEANS.map((bean) => ({
+      x: bean.x,
+      y: bean.y,
+      vx: bean.vx,
+      vy: bean.vy,
+      paused: false,
+    })),
+  )
 
-  const [orbRender, setOrbRender] = useState({
-    x: 120,
-    y: 90,
-    paused: false,
-    dragging: false,
-  })
+  const [activeRender, setActiveRender] = useState(
+    ACTIVE_BEANS.map((bean) => ({
+      x: bean.x,
+      y: bean.y,
+      paused: false,
+      dragging: false,
+    })),
+  )
   const [columnWidth, setColumnWidth] = useState(0)
-  const [orbRect, setOrbRect] = useState(null)
+  const [orbRects, setOrbRects] = useState([])
 
   useEffect(() => {
     let frameId = 0
@@ -54,41 +71,48 @@ function About() {
 
       const dt = Math.min((now - lastTime) / 1000, 0.05)
       lastTime = now
+      const draggingIndex = dragRef.current?.index ?? -1
 
-      const beanWidth = beanSizeRef.current.width
-      const beanHeight = beanSizeRef.current.height
-      const maxX = Math.max(sectionRect.width - beanWidth, 0)
-      const maxY = Math.max(sectionRect.height - beanHeight, 0)
-      const orb = orbRef.current
-      const isDragging = dragRef.current !== null
-
-      if (!orb.paused && !isDragging) {
-        orb.x += orb.vx * dt
-        orb.y += orb.vy * dt
-
-        if (orb.x <= 0) {
-          orb.x = 0
-          orb.vx = Math.abs(orb.vx)
-        } else if (orb.x >= maxX) {
-          orb.x = maxX
-          orb.vx = -Math.abs(orb.vx)
+      for (let index = 0; index < activeBeansRef.current.length; index += 1) {
+        const bean = activeBeansRef.current[index]
+        const size = activeSizeRefs.current[index] ?? {
+          width: ACTIVE_BEANS[index].size,
+          height: ACTIVE_BEANS[index].size,
         }
+        const maxX = Math.max(sectionRect.width - size.width, 0)
+        const maxY = Math.max(sectionRect.height - size.height, 0)
+        const isDraggingThisBean = index === draggingIndex
 
-        if (orb.y <= 0) {
-          orb.y = 0
-          orb.vy = Math.abs(orb.vy)
-        } else if (orb.y >= maxY) {
-          orb.y = maxY
-          orb.vy = -Math.abs(orb.vy)
+        if (!bean.paused && !isDraggingThisBean) {
+          bean.x += bean.vx * dt
+          bean.y += bean.vy * dt
+
+          if (bean.x <= 0) {
+            bean.x = 0
+            bean.vx = Math.abs(bean.vx)
+          } else if (bean.x >= maxX) {
+            bean.x = maxX
+            bean.vx = -Math.abs(bean.vx)
+          }
+
+          if (bean.y <= 0) {
+            bean.y = 0
+            bean.vy = Math.abs(bean.vy)
+          } else if (bean.y >= maxY) {
+            bean.y = maxY
+            bean.vy = -Math.abs(bean.vy)
+          }
         }
       }
 
-      setOrbRender({
-        x: orb.x,
-        y: orb.y,
-        paused: orb.paused,
-        dragging: isDragging,
-      })
+      setActiveRender(
+        activeBeansRef.current.map((bean, index) => ({
+          x: bean.x,
+          y: bean.y,
+          paused: bean.paused,
+          dragging: index === draggingIndex,
+        })),
+      )
 
       frameId = requestAnimationFrame(tick)
     }
@@ -113,41 +137,44 @@ function About() {
         right: textRect.right - sectionRect.left,
         bottom: textRect.bottom - sectionRect.top,
       }
-      textBoxRef.current = textBox
 
-      const imageRect = orbImageRef.current?.getBoundingClientRect()
-      if (!imageRect) {
-        setOrbRect(null)
-        return
+      const nextRectangles = []
+      for (let index = 0; index < activeImageRefs.current.length; index += 1) {
+        const imageRect = activeImageRefs.current[index]?.getBoundingClientRect()
+        if (!imageRect) {
+          continue
+        }
+
+        activeSizeRefs.current[index] = {
+          width: imageRect.width,
+          height: imageRect.height,
+        }
+
+        const beanBox = {
+          left: imageRect.left - sectionRect.left,
+          top: imageRect.top - sectionRect.top,
+          right: imageRect.right - sectionRect.left,
+          bottom: imageRect.bottom - sectionRect.top,
+        }
+
+        const overlapLeft = Math.max(textBox.left, beanBox.left)
+        const overlapTop = Math.max(textBox.top, beanBox.top)
+        const overlapRight = Math.min(textBox.right, beanBox.right)
+        const overlapBottom = Math.min(textBox.bottom, beanBox.bottom)
+
+        if (overlapRight <= overlapLeft || overlapBottom <= overlapTop) {
+          continue
+        }
+
+        nextRectangles.push({
+          x: overlapLeft - textBox.left,
+          y: overlapTop - textBox.top,
+          width: overlapRight - overlapLeft,
+          height: overlapBottom - overlapTop,
+        })
       }
-      beanSizeRef.current = {
-        width: imageRect.width,
-        height: imageRect.height,
-      }
 
-      const orbBox = {
-        left: imageRect.left - sectionRect.left,
-        top: imageRect.top - sectionRect.top,
-        right: imageRect.right - sectionRect.left,
-        bottom: imageRect.bottom - sectionRect.top,
-      }
-
-      const overlapLeft = Math.max(textBox.left, orbBox.left)
-      const overlapTop = Math.max(textBox.top, orbBox.top)
-      const overlapRight = Math.min(textBox.right, orbBox.right)
-      const overlapBottom = Math.min(textBox.bottom, orbBox.bottom)
-
-      if (overlapRight <= overlapLeft || overlapBottom <= overlapTop) {
-        setOrbRect(null)
-        return
-      }
-
-      setOrbRect({
-        x: overlapLeft - textBox.left,
-        y: overlapTop - textBox.top,
-        width: overlapRight - overlapLeft,
-        height: overlapBottom - overlapTop,
-      })
+      setOrbRects(nextRectangles)
     }
 
     measure()
@@ -164,7 +191,7 @@ function About() {
       observer.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [orbRender])
+  }, [activeRender])
 
   useEffect(() => {
     const onPointerMove = (event) => {
@@ -179,15 +206,19 @@ function About() {
 
       const deltaX = event.clientX - dragRef.current.startX
       const deltaY = event.clientY - dragRef.current.startY
-      const maxX = Math.max(sectionRect.width - beanSizeRef.current.width, 0)
-      const maxY = Math.max(sectionRect.height - beanSizeRef.current.height, 0)
+      const targetIndex = dragRef.current.index
+      const size = activeSizeRefs.current[targetIndex] ?? {
+        width: ACTIVE_BEANS[targetIndex]?.size ?? 120,
+        height: ACTIVE_BEANS[targetIndex]?.size ?? 120,
+      }
+      const maxX = Math.max(sectionRect.width - size.width, 0)
+      const maxY = Math.max(sectionRect.height - size.height, 0)
+      const targetBean = activeBeansRef.current[targetIndex]
 
-      orbRef.current.x = clamp(dragRef.current.orbStartX + deltaX, 0, maxX)
-      orbRef.current.y = clamp(dragRef.current.orbStartY + deltaY, 0, maxY)
+      targetBean.x = clamp(dragRef.current.beanStartX + deltaX, 0, maxX)
+      targetBean.y = clamp(dragRef.current.beanStartY + deltaY, 0, maxY)
       dragRef.current.moved =
-        dragRef.current.moved ||
-        Math.abs(deltaX) > 4 ||
-        Math.abs(deltaY) > 4
+        dragRef.current.moved || Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4
     }
 
     const onPointerUp = () => {
@@ -196,21 +227,28 @@ function About() {
       }
 
       const wasClick = !dragRef.current.moved
-      const orb = orbRef.current
+      const targetIndex = dragRef.current.index
+      const targetBean = activeBeansRef.current[targetIndex]
       if (wasClick) {
-        orb.paused = !orb.paused
+        targetBean.paused = !dragRef.current.wasPaused
       } else {
-        orb.paused = false
+        targetBean.paused = true
       }
 
       dragRef.current = null
-      setOrbRender((prev) => ({
-        ...prev,
-        x: orb.x,
-        y: orb.y,
-        paused: orb.paused,
-        dragging: false,
-      }))
+      setActiveRender((prev) =>
+        prev.map((bean, index) =>
+          index === targetIndex
+            ? {
+                ...bean,
+                x: targetBean.x,
+                y: targetBean.y,
+                paused: targetBean.paused,
+                dragging: false,
+              }
+            : bean,
+        ),
+      )
     }
 
     window.addEventListener('pointermove', onPointerMove)
@@ -227,53 +265,87 @@ function About() {
   const routedLayout = useAboutOrbLayout({
     paragraphs: ABOUT_PARAGRAPHS,
     columnWidth,
-    orbRect,
+    orbRects,
     lineHeight: 34,
     paragraphGap: 30,
   })
 
-  const cursorClass = orbRender.dragging
-    ? 'cursor-grabbing'
-    : orbRender.paused
-      ? 'cursor-pointer'
-      : 'cursor-grab'
-
-  const orbStyle = useMemo(
-    () => ({
-      transform: `translate3d(${orbRender.x}px, ${orbRender.y}px, 0)`,
-    }),
-    [orbRender.x, orbRender.y],
-  )
-
   return (
     <section id="heritage" className="overflow-hidden bg-[var(--surface)] px-8 py-32">
       <div ref={sectionRef} className="relative mx-auto max-w-7xl">
-        <MotionDiv
-          className={`absolute top-0 left-0 z-20 ${cursorClass}`}
-          style={orbStyle}
-          onPointerDown={(event) => {
-            event.preventDefault()
-            const orb = orbRef.current
-            dragRef.current = {
-              startX: event.clientX,
-              startY: event.clientY,
-              orbStartX: orb.x,
-              orbStartY: orb.y,
-              moved: false,
-            }
-            orb.paused = true
-            setOrbRender((prev) => ({ ...prev, paused: true, dragging: true }))
-          }}
-        >
-          <div className="pointer-events-none absolute inset-0 -z-10 scale-110 rounded-full bg-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] blur-3xl" />
-          <img
-            ref={orbImageRef}
+        {activeRender.map((bean, index) => (
+          <MotionDiv
+            key={`active-bean-${index}`}
+            className={`absolute top-0 left-0 z-20 ${
+              bean.dragging ? 'cursor-grabbing' : bean.paused ? 'cursor-pointer' : 'cursor-grab'
+            }`}
+            style={{
+              transform: `translate3d(${bean.x}px, ${bean.y}px, 0) rotate(${ACTIVE_BEANS[index].rotation}deg)`,
+              opacity: 0.94,
+            }}
+            onPointerDown={(event) => {
+              event.preventDefault()
+              const targetBean = activeBeansRef.current[index]
+              dragRef.current = {
+                index,
+                startX: event.clientX,
+                startY: event.clientY,
+                beanStartX: targetBean.x,
+                beanStartY: targetBean.y,
+                moved: false,
+                wasPaused: targetBean.paused,
+              }
+              targetBean.paused = true
+              setActiveRender((prev) =>
+                prev.map((entry, innerIndex) =>
+                  innerIndex === index
+                    ? { ...entry, paused: true, dragging: true }
+                    : entry,
+                ),
+              )
+            }}
+          >
+            <div className="pointer-events-none absolute inset-0 -z-10 scale-110 rounded-full bg-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] blur-3xl" />
+            <img
+              ref={(element) => {
+                activeImageRefs.current[index] = element
+              }}
+              src="/assets/images/coffee-bean.png"
+              alt={index === 0 ? 'Coffee bean' : ''}
+              className="block h-auto select-none"
+              style={{ width: `${ACTIVE_BEANS[index].size}px` }}
+              draggable={false}
+            />
+          </MotionDiv>
+        ))}
+
+        {DECORATIVE_BEANS.map((bean, index) => (
+          <motion.img
+            key={`decorative-bean-${index}`}
             src="/assets/images/coffee-bean.png"
-            alt="Coffee bean"
-            className="block w-[170px] h-auto select-none"
+            alt=""
+            className="pointer-events-none absolute z-10 select-none"
+            style={{
+              left: `${bean.left}px`,
+              bottom: `${bean.bottom}px`,
+              width: `${bean.size}px`,
+              opacity: bean.opacity,
+              rotate: `${bean.rotation}deg`,
+            }}
+            animate={{
+              x: [0, bean.driftX, -bean.driftX * 0.55, 0],
+              y: [0, -bean.driftY, bean.driftY * 0.45, 0],
+            }}
+            transition={{
+              duration: bean.duration,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: 'loop',
+              ease: 'easeInOut',
+              delay: index * 0.7,
+            }}
             draggable={false}
           />
-        </MotionDiv>
+        ))}
 
         <div className="grid grid-cols-1 gap-14 lg:grid-cols-12">
           <div className="lg:col-span-4">

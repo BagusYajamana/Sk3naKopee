@@ -10,8 +10,8 @@ function useZoomScroll(containerRef) {
     offset: ['start start', 'end end'],
   })
   const scale = useTransform(scrollYProgress, [0, 1], [1.85, 1.0])
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.88], [0.84, 0.28])
-  const counterOpacity = useTransform(scrollYProgress, [0.22, 0.52], [0, 0.55])
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.75], [0.84, 0.28])
+  const counterOpacity = useTransform(scrollYProgress, [0.04, 0.22], [0, 0.55])
   return { scrollYProgress, scale, overlayOpacity, counterOpacity }
 }
 
@@ -98,7 +98,7 @@ function FarmSection() {
   const ease = [0.25, 0.1, 0.25, 1]
 
   return (
-    <div ref={containerRef} style={{ height: '300vh' }}>
+    <div ref={containerRef} style={{ height: '160vh' }}>
       <div
         style={{
           position: 'sticky',
@@ -182,10 +182,10 @@ function RoastSection() {
   const containerRef = useRef(null)
   const { scrollYProgress, scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
 
-  const wordOpacity = useTransform(scrollYProgress, [0.1, 0.35], [0, 1])
+  const wordOpacity = useTransform(scrollYProgress, [0.04, 0.26], [0, 1])
 
   return (
-    <div ref={containerRef} style={{ height: '300vh' }}>
+    <div ref={containerRef} style={{ height: '160vh' }}>
       <div
         style={{
           position: 'sticky',
@@ -242,14 +242,14 @@ function ZoomSection({ image, headline, subtext, index }) {
   const containerRef = useRef(null)
   const { scrollYProgress, scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
 
-  const headlineOpacity = useTransform(scrollYProgress, [0.28, 0.58], [0, 1])
-  const headlineBlurRaw = useTransform(scrollYProgress, [0.28, 0.58], [14, 0])
+  const headlineOpacity = useTransform(scrollYProgress, [0.04, 0.26], [0, 1])
+  const headlineBlurRaw = useTransform(scrollYProgress, [0.04, 0.26], [14, 0])
   const headlineFilter = useTransform(headlineBlurRaw, (v) => `blur(${v}px)`)
-  const subtextOpacity = useTransform(scrollYProgress, [0.48, 0.74], [0, 1])
-  const subtextY = useTransform(scrollYProgress, [0.48, 0.74], [20, 0])
+  const subtextOpacity = useTransform(scrollYProgress, [0.18, 0.38], [0, 1])
+  const subtextY = useTransform(scrollYProgress, [0.18, 0.38], [20, 0])
 
   return (
-    <div ref={containerRef} style={{ height: '300vh' }}>
+    <div ref={containerRef} style={{ height: '160vh' }}>
       <div
         style={{
           position: 'sticky',

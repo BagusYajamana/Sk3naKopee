@@ -344,7 +344,7 @@ function MenuHighlights() {
                 return (
                   <MotionArticle
                     key={`deck-${item.name}`}
-                    className="absolute left-0 top-0 max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
+                  className="absolute left-0 top-0 mt-[54px] max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
                     style={{
                       backgroundColor: '#ffffff',
                       boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
@@ -386,30 +386,32 @@ function MenuHighlights() {
           </div>
 
           <div className="relative hidden h-[min(72vh,620px)] lg:block">
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-[46%] rounded-full bg-[radial-gradient(circle,rgba(247,220,182,0.42)_0%,rgba(247,220,182,0.16)_38%,rgba(247,220,182,0)_74%)] blur-2xl" />
-              <div className="absolute left-[56%] top-[40%] h-[46%] w-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,246,230,0.72)_0%,rgba(255,246,230,0.24)_42%,rgba(255,246,230,0)_78%)] blur-xl" />
-            </div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <motion.img
-                key={topItem?.name}
-                src={topMenuImage}
-                alt={topItem ? `${topItem.name} menu item` : 'Menu item'}
-                className="relative z-10 h-[112%] w-[112%] max-w-none object-contain drop-shadow-[0_30px_34px_rgba(43,29,16,0.2)]"
-                initial={{ opacity: 0, scale: 0.9, rotate: -1.7, x: 0, y: 6 }}
-                animate={{
-                  opacity: [0, 1, 1, 1, 1],
-                  scale: [0.9, 1.06, 0.99, 1.015, 1],
-                  rotate: [-1.7, 1.1, -0.85, 0.45, 0],
-                  x: [0, -4, 4, -1, 0],
-                  y: [6, -2, 1, 0, 0],
-                }}
-                transition={{
-                  duration: 0.36,
-                  ease: 'easeOut',
-                  times: [0, 0.22, 0.5, 0.76, 1],
-                }}
-              />
+              <div className="relative h-[min(88%,560px)] w-[min(88%,560px)] min-h-[min(82%,500px)] min-w-[min(82%,500px)]">
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute left-1/2 top-1/2 h-[132%] w-[132%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(247,220,182,0.4)_0%,rgba(247,220,182,0.14)_36%,rgba(247,220,182,0)_74%)] blur-2xl" />
+                  <div className="absolute left-[56%] top-[40%] h-[88%] w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,246,230,0.68)_0%,rgba(255,246,230,0.22)_40%,rgba(255,246,230,0)_78%)] blur-xl" />
+                </div>
+                <motion.img
+                  key={topItem?.name}
+                  src={topMenuImage}
+                  alt={topItem ? `${topItem.name} menu item` : 'Menu item'}
+                  className="relative z-10 h-full w-full object-contain drop-shadow-[0_30px_34px_rgba(43,29,16,0.2)]"
+                  initial={{ opacity: 0, scale: 0.9, rotate: -1.7, x: 0, y: 6 }}
+                  animate={{
+                    opacity: [0, 1, 1, 1, 1],
+                    scale: [0.9, 1.06, 0.99, 1.015, 1],
+                    rotate: [-1.7, 1.1, -0.85, 0.45, 0],
+                    x: [0, -4, 4, -1, 0],
+                    y: [6, -2, 1, 0, 0],
+                  }}
+                  transition={{
+                    duration: 0.36,
+                    ease: 'easeOut',
+                    times: [0, 0.22, 0.5, 0.76, 1],
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

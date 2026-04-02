@@ -1,5 +1,8 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import cofeeFarmImg from '../assets/images/cofee-farm.png'
+import cofeeGrindImg from '../assets/images/cofee-grind.png'
+import cofeeGrindedImg from '../assets/images/cofee-grinded.png'
 import cofeeRoastImg from '../assets/images/cofee-roast.png'
 
 // ── Shared scroll-driven zoom values ────────────────────────────────────────
@@ -109,7 +112,7 @@ function FarmSection() {
         }}
       >
         <ZoomBackground
-          image="/assets/images/cofee-farm.png"
+          image={cofeeFarmImg}
           scale={scale}
           overlayOpacity={overlayOpacity}
           gradientDir="135deg"
@@ -326,13 +329,13 @@ function Hero() {
       <FarmSection />
       <RoastSection />
       <ZoomSection
-        image="/assets/images/cofee-grind.png"
+        image={cofeeGrindImg}
         headline="Ground at the Moment of Order"
         subtext="Oxidation is the enemy of flavor. We grind fresh for every cup, every time."
         index={2}
       />
       <ZoomSection
-        image="/assets/images/cofee-grinded.png"
+        image={cofeeGrindedImg}
         headline="Every Gram, Intentional"
         subtext="Precision is not obsession. It is a quiet form of respect for the farmer who grew it."
         index={3}

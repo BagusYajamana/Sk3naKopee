@@ -348,6 +348,7 @@ function MenuHighlights() {
                     style={{
                       backgroundColor: '#ffffff',
                       boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
+                      border: '3px solid #6b3f2a',
                       width: `min(100%, ${textWidth + 260}px)`,
                       zIndex: menuItems.length - depth,
                       pointerEvents: isTopCard ? 'auto' : 'none',

@@ -1,6 +1,35 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
+
+const DECK_VISIBLE_DEPTH = 3
+const SWIPE_DISTANCE_THRESHOLD = 70
+const SWIPE_VELOCITY_THRESHOLD = 520
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function getSwipeDirection(offset, velocity) {
+  const absX = Math.abs(offset.x)
+  const absY = Math.abs(offset.y)
+  const strongX =
+    absX > SWIPE_DISTANCE_THRESHOLD ||
+    Math.abs(velocity.x) > SWIPE_VELOCITY_THRESHOLD
+  const strongY =
+    absY > SWIPE_DISTANCE_THRESHOLD ||
+    Math.abs(velocity.y) > SWIPE_VELOCITY_THRESHOLD
+
+  if (strongY && absY > absX && (offset.y < 0 || velocity.y < 0)) {
+    return 'up'
+  }
+
+  if (strongX && absX >= absY) {
+    return offset.x >= 0 ? 'right' : 'left'
+  }
+
+  return null
+}
 
 function MenuHighlights() {
   const menuItems = useMemo(
@@ -41,61 +70,171 @@ function MenuHighlights() {
     [],
   )
 
-  const floatProfiles = useMemo(
-    () =>
-      menuItems.map((item, index) => {
-        const seed = item.name
-          .split('')
-          .reduce((acc, char) => acc + char.charCodeAt(0), 0)
-        const distance = 8 + (seed % 11)
-        const duration = 12 + ((seed + index) % 8)
-        const delay = (seed % 5) * 0.8
-        return { distance, duration, delay }
-      }),
-    [menuItems],
-  )
-
   const layouts = useMenuHighlightLayout(menuItems)
   const MotionArticle = motion.article
-  const trackRef = useRef(null)
-  const cardRefs = useRef([])
-  const [travelDistances, setTravelDistances] = useState(() =>
-    menuItems.map(() => 0),
+  const deckRef = useRef(null)
+  const wheelDeltaRef = useRef(0)
+  const isPointerOverTopCardRef = useRef(false)
+  const cycleLockRef = useRef(false)
+  const [deckOrder, setDeckOrder] = useState(() =>
+    menuItems.map((_, index) => index),
   )
+  const [activeThrow, setActiveThrow] = useState(null)
+  const [deckBounds, setDeckBounds] = useState(() => ({
+    width: 0,
+    height: 0,
+  }))
+
+  useLayoutEffect(() => {
+    setDeckOrder(menuItems.map((_, index) => index))
+    setActiveThrow(null)
+    cycleLockRef.current = false
+  }, [menuItems])
 
   useLayoutEffect(() => {
     const measure = () => {
-      const trackWidth = trackRef.current?.clientWidth ?? 0
-      const nextDistances = menuItems.map((_, index) => {
-        const cardWidth = cardRefs.current[index]?.offsetWidth ?? 0
-        return Math.max(trackWidth - cardWidth, 0)
-      })
+      const width = deckRef.current?.clientWidth ?? 0
+      const height = deckRef.current?.clientHeight ?? 0
 
-      setTravelDistances((current) => {
-        const isSame =
-          current.length === nextDistances.length &&
-          current.every((value, index) => value === nextDistances[index])
-        return isSame ? current : nextDistances
-      })
+      setDeckBounds((current) =>
+        current.width === width && current.height === height
+          ? current
+          : { width, height },
+      )
     }
 
     measure()
     const resizeObserver = new ResizeObserver(measure)
-    if (trackRef.current) {
-      resizeObserver.observe(trackRef.current)
+    if (deckRef.current) {
+      resizeObserver.observe(deckRef.current)
     }
-    cardRefs.current.forEach((element) => {
-      if (element) {
-        resizeObserver.observe(element)
-      }
-    })
     window.addEventListener('resize', measure)
 
     return () => {
       resizeObserver.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [menuItems])
+  }, [])
+
+  const renderCardBody = useCallback((item, textWidth, measuredHeight) => {
+    return (
+      <>
+        <span className="mb-2 block font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.2em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
+          {item.label}
+        </span>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr] md:items-start md:gap-8">
+          <div className="md:pt-1">
+            <p className="font-['Newsreader'] text-5xl italic text-[var(--primary)]">
+              {item.price}
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-3 font-['Newsreader'] text-4xl italic text-[var(--primary)] md:text-5xl">
+              {item.name}
+            </h3>
+            <p className="mb-4 font-['Plus_Jakarta_Sans'] text-xs font-bold tracking-[0.14em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
+              {item.profile}
+            </p>
+            <p
+              className="font-['Plus_Jakarta_Sans'] text-base leading-[1.65] text-[color:color-mix(in_srgb,var(--on_surface)_70%,#4f453f_30%)]"
+              style={{
+                width: `min(100%, ${textWidth}px)`,
+                minHeight: `${measuredHeight}px`,
+              }}
+            >
+              {item.description}
+            </p>
+          </div>
+        </div>
+      </>
+    )
+  }, [])
+
+  const startDeckCycle = useCallback(
+    (direction, seed = { x: 0, y: 0 }) => {
+      if (cycleLockRef.current || menuItems.length < 2) {
+        return
+      }
+
+      cycleLockRef.current = true
+      setActiveThrow({
+        direction,
+        startX: seed.x ?? 0,
+        startY: seed.y ?? 0,
+        startRotate: clamp((seed.x ?? 0) / 18, -14, 14),
+      })
+    },
+    [menuItems.length],
+  )
+
+  const completeDeckCycle = useCallback(() => {
+    setDeckOrder((current) =>
+      current.length > 1 ? [...current.slice(1), current[0]] : current,
+    )
+    setActiveThrow(null)
+    cycleLockRef.current = false
+  }, [])
+
+  const handleDeckWheel = useCallback(
+    (event) => {
+      event.preventDefault()
+
+      if (cycleLockRef.current) {
+        return
+      }
+
+      const isHorizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+      const dominantDelta = isHorizontal ? event.deltaX : event.deltaY
+      wheelDeltaRef.current += dominantDelta
+
+      if (Math.abs(wheelDeltaRef.current) < 34) {
+        return
+      }
+
+      const direction = isHorizontal
+        ? wheelDeltaRef.current > 0
+          ? 'right'
+          : 'left'
+        : wheelDeltaRef.current < 0
+          ? 'up'
+          : 'down'
+
+      wheelDeltaRef.current = 0
+      startDeckCycle(direction)
+    },
+    [startDeckCycle],
+  )
+
+  useLayoutEffect(() => {
+    const onWindowWheel = (event) => {
+      if (!isPointerOverTopCardRef.current) {
+        return
+      }
+
+      handleDeckWheel(event)
+    }
+
+    window.addEventListener('wheel', onWindowWheel, { passive: false })
+    return () => {
+      window.removeEventListener('wheel', onWindowWheel)
+    }
+  }, [handleDeckWheel])
+
+  const handleDeckDragEnd = useCallback(
+    (_, info) => {
+      const direction = getSwipeDirection(info.offset, info.velocity)
+      if (!direction) {
+        return
+      }
+
+      startDeckCycle(direction, { x: info.offset.x, y: info.offset.y })
+    },
+    [startDeckCycle],
+  )
+
+  const topIndex = deckOrder[0] ?? 0
+  const topLayout = layouts[topIndex]
+  const deckHeight = Math.max((topLayout?.height ?? 120) + 265, 380)
 
   return (
     <section
@@ -113,63 +252,118 @@ function MenuHighlights() {
           </span>
         </div>
 
-        <div ref={trackRef} className="space-y-6">
-          {menuItems.map((item, index) => {
-            const layout = layouts[index]
+        <div
+          ref={deckRef}
+          className="relative mx-auto w-full overflow-hidden touch-none pb-4"
+          style={{ minHeight: `${deckHeight}px` }}
+        >
+          {deckOrder.map((itemIndex, depth) => {
+            const item = menuItems[itemIndex]
+            const layout = layouts[itemIndex]
             const textWidth = layout?.width ?? 360
             const measuredHeight = layout?.height ?? 120
-            const travel = travelDistances[index] ?? 0
+            const isTopCard = depth === 0
+            const hiddenDepth = depth >= DECK_VISIBLE_DEPTH
+            const depthOffsetY = depth * 12
+            const depthScale = 1 - depth * 0.035
+            const depthOpacity =
+              depth === 0 ? 1 : depth === 1 ? 0.84 : depth === 2 ? 0.68 : 0
+            const throwWidth = deckBounds.width || 480
+            const throwHeight = deckBounds.height || 420
+
+            let animateConfig = {
+              x: 0,
+              y: depthOffsetY,
+              scale: depthScale,
+              rotate: 0,
+              opacity: hiddenDepth ? 0 : depthOpacity,
+            }
+            let transitionConfig = { duration: 0 }
+
+            if (isTopCard && activeThrow) {
+              const isLeft = activeThrow.direction === 'left'
+              const isRight = activeThrow.direction === 'right'
+              const isUp = activeThrow.direction === 'up'
+              const isDown = activeThrow.direction === 'down'
+              const midX = isLeft ? -52 : isRight ? 52 : activeThrow.startX * 0.28
+              const midY = isUp
+                ? activeThrow.startY - 60
+                : isDown
+                  ? activeThrow.startY + 42
+                  : activeThrow.startY - 26
+              const exitX = isLeft ? -throwWidth - 160 : isRight ? throwWidth + 160 : 0
+              const exitY = isUp
+                ? -throwHeight - 180
+                : isDown
+                  ? throwHeight + 180
+                  : throwHeight * 0.24
+              const midRotate = isLeft
+                ? -8
+                : isRight
+                  ? 8
+                  : activeThrow.startRotate * 0.35
+              const exitRotate = isLeft ? -16 : isRight ? 16 : isDown ? 6 : -6
+
+              animateConfig = {
+                x: [activeThrow.startX, midX, exitX],
+                y: [activeThrow.startY, midY, exitY],
+                scale: 1,
+                rotate: [activeThrow.startRotate, midRotate, exitRotate],
+                opacity: 1,
+              }
+              transitionConfig = {
+                duration: 0.28,
+                ease: [0.2, 0.9, 0.25, 1],
+                times: [0, 0.36, 1],
+              }
+            } else if (isTopCard) {
+              animateConfig = {
+                x: 0,
+                y: 0,
+                scale: 1,
+                rotate: 0,
+                opacity: 1,
+              }
+            }
 
             return (
               <MotionArticle
-                key={item.name}
-                ref={(element) => {
-                  cardRefs.current[index] = element
-                }}
-                className="w-fit max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
+                key={`deck-${item.name}`}
+                className="absolute left-0 top-0 max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
                 style={{
                   backgroundColor: '#ffffff',
                   boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
                   width: `min(100%, ${textWidth + 260}px)`,
+                  zIndex: menuItems.length - depth,
+                  pointerEvents: isTopCard ? 'auto' : 'none',
                 }}
-                animate={{
-                  x: travel > 0 ? [0, travel, 0] : 0,
-                }}
-                transition={{
-                  duration: (floatProfiles[index]?.duration ?? 14) + travel / 90,
-                  repeat: Number.POSITIVE_INFINITY,
-                  repeatType: 'loop',
-                  ease: 'easeInOut',
-                  delay: floatProfiles[index]?.delay ?? 0,
-                }}
+                drag={isTopCard && !activeThrow}
+                dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                dragElastic={0.22}
+                dragMomentum={false}
+                onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
+                onPointerEnter={
+                  isTopCard
+                    ? () => {
+                        isPointerOverTopCardRef.current = true
+                      }
+                    : undefined
+                }
+                onPointerLeave={
+                  isTopCard
+                    ? () => {
+                        isPointerOverTopCardRef.current = false
+                        wheelDeltaRef.current = 0
+                      }
+                    : undefined
+                }
+                animate={animateConfig}
+                transition={transitionConfig}
+                onAnimationComplete={
+                  isTopCard && activeThrow ? completeDeckCycle : undefined
+                }
               >
-                <span className="mb-2 block font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.2em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
-                  {item.label}
-                </span>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr] md:items-start md:gap-8">
-                  <div className="md:pt-1">
-                    <p className="font-['Newsreader'] text-5xl italic text-[var(--primary)]">
-                      {item.price}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="mb-3 font-['Newsreader'] text-4xl italic text-[var(--primary)] md:text-5xl">
-                      {item.name}
-                    </h3>
-                    <p className="mb-4 font-['Plus_Jakarta_Sans'] text-xs font-bold tracking-[0.14em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
-                      {item.profile}
-                    </p>
-                    <p
-                      className="font-['Plus_Jakarta_Sans'] text-base leading-[1.65] text-[color:color-mix(in_srgb,var(--on_surface)_70%,#4f453f_30%)]"
-                      style={{
-                        width: `min(100%, ${textWidth}px)`,
-                        minHeight: `${measuredHeight}px`,
-                      }}
-                    >
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
+                {renderCardBody(item, textWidth, measuredHeight)}
               </MotionArticle>
             )
           })}

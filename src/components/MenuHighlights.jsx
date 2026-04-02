@@ -1,10 +1,21 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
+import espressoImage from '../assets/images/espresso.png'
+import pourOverImage from '../assets/images/pour-over.png'
+import kopiSusuGulaArenImage from '../assets/images/kopi-susu-gula-aren.png'
+import skenaNightBloomImage from '../assets/images/skena-night-bloom.png'
 
 const DECK_VISIBLE_DEPTH = 3
 const SWIPE_DISTANCE_THRESHOLD = 70
 const SWIPE_VELOCITY_THRESHOLD = 520
+const menuImageByName = {
+  Espresso: espressoImage,
+  'Pour Over': pourOverImage,
+  'Kopi Susu Aren': kopiSusuGulaArenImage,
+  'Kopi Susu Gula Aren': kopiSusuGulaArenImage,
+  'Skena Night Bloom': skenaNightBloomImage,
+}
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
@@ -235,6 +246,8 @@ function MenuHighlights() {
   const topIndex = deckOrder[0] ?? 0
   const topLayout = layouts[topIndex]
   const deckHeight = Math.max((topLayout?.height ?? 120) + 265, 380)
+  const topItem = menuItems[topIndex]
+  const topMenuImage = menuImageByName[topItem?.name] ?? espressoImage
 
   return (
     <section
@@ -252,121 +265,151 @@ function MenuHighlights() {
           </span>
         </div>
 
-        <div
-          ref={deckRef}
-          className="relative mx-auto w-full overflow-hidden touch-none pb-4"
-          style={{ minHeight: `${deckHeight}px` }}
-        >
-          {deckOrder.map((itemIndex, depth) => {
-            const item = menuItems[itemIndex]
-            const layout = layouts[itemIndex]
-            const textWidth = layout?.width ?? 360
-            const measuredHeight = layout?.height ?? 120
-            const isTopCard = depth === 0
-            const hiddenDepth = depth >= DECK_VISIBLE_DEPTH
-            const depthOffsetY = depth * 12
-            const depthScale = 1 - depth * 0.035
-            const depthOpacity =
-              depth === 0 ? 1 : depth === 1 ? 0.84 : depth === 2 ? 0.68 : 0
-            const throwWidth = deckBounds.width || 480
-            const throwHeight = deckBounds.height || 420
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start xl:grid-cols-[minmax(0,1fr)_500px]">
+          <div
+            ref={deckRef}
+            className="relative mx-auto w-full overflow-hidden touch-none pb-4"
+            style={{ minHeight: `${deckHeight}px` }}
+          >
+            {deckOrder.map((itemIndex, depth) => {
+              const item = menuItems[itemIndex]
+              const layout = layouts[itemIndex]
+              const textWidth = layout?.width ?? 360
+              const measuredHeight = layout?.height ?? 120
+              const isTopCard = depth === 0
+              const hiddenDepth = depth >= DECK_VISIBLE_DEPTH
+              const depthOffsetY = depth * 12
+              const depthScale = 1 - depth * 0.035
+              const depthOpacity =
+                depth === 0 ? 1 : depth === 1 ? 0.84 : depth === 2 ? 0.68 : 0
+              const throwWidth = deckBounds.width || 480
+              const throwHeight = deckBounds.height || 420
 
-            let animateConfig = {
-              x: 0,
-              y: depthOffsetY,
-              scale: depthScale,
-              rotate: 0,
-              opacity: hiddenDepth ? 0 : depthOpacity,
-            }
-            let transitionConfig = { duration: 0 }
-
-            if (isTopCard && activeThrow) {
-              const isLeft = activeThrow.direction === 'left'
-              const isRight = activeThrow.direction === 'right'
-              const isUp = activeThrow.direction === 'up'
-              const isDown = activeThrow.direction === 'down'
-              const midX = isLeft ? -52 : isRight ? 52 : activeThrow.startX * 0.28
-              const midY = isUp
-                ? activeThrow.startY - 60
-                : isDown
-                  ? activeThrow.startY + 42
-                  : activeThrow.startY - 26
-              const exitX = isLeft ? -throwWidth - 160 : isRight ? throwWidth + 160 : 0
-              const exitY = isUp
-                ? -throwHeight - 180
-                : isDown
-                  ? throwHeight + 180
-                  : throwHeight * 0.24
-              const midRotate = isLeft
-                ? -8
-                : isRight
-                  ? 8
-                  : activeThrow.startRotate * 0.35
-              const exitRotate = isLeft ? -16 : isRight ? 16 : isDown ? 6 : -6
-
-              animateConfig = {
-                x: [activeThrow.startX, midX, exitX],
-                y: [activeThrow.startY, midY, exitY],
-                scale: 1,
-                rotate: [activeThrow.startRotate, midRotate, exitRotate],
-                opacity: 1,
-              }
-              transitionConfig = {
-                duration: 0.28,
-                ease: [0.2, 0.9, 0.25, 1],
-                times: [0, 0.36, 1],
-              }
-            } else if (isTopCard) {
-              animateConfig = {
+              let animateConfig = {
                 x: 0,
-                y: 0,
-                scale: 1,
+                y: depthOffsetY,
+                scale: depthScale,
                 rotate: 0,
-                opacity: 1,
+                opacity: hiddenDepth ? 0 : depthOpacity,
               }
-            }
+              let transitionConfig = { duration: 0 }
 
-            return (
-              <MotionArticle
-                key={`deck-${item.name}`}
-                className="absolute left-0 top-0 max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
-                style={{
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
-                  width: `min(100%, ${textWidth + 260}px)`,
-                  zIndex: menuItems.length - depth,
-                  pointerEvents: isTopCard ? 'auto' : 'none',
+              if (isTopCard && activeThrow) {
+                const isLeft = activeThrow.direction === 'left'
+                const isRight = activeThrow.direction === 'right'
+                const isUp = activeThrow.direction === 'up'
+                const isDown = activeThrow.direction === 'down'
+                const midX = isLeft ? -52 : isRight ? 52 : activeThrow.startX * 0.28
+                const midY = isUp
+                  ? activeThrow.startY - 60
+                  : isDown
+                    ? activeThrow.startY + 42
+                    : activeThrow.startY - 26
+                const exitX = isLeft ? -throwWidth - 160 : isRight ? throwWidth + 160 : 0
+                const exitY = isUp
+                  ? -throwHeight - 180
+                  : isDown
+                    ? throwHeight + 180
+                    : throwHeight * 0.24
+                const midRotate = isLeft
+                  ? -8
+                  : isRight
+                    ? 8
+                    : activeThrow.startRotate * 0.35
+                const exitRotate = isLeft ? -16 : isRight ? 16 : isDown ? 6 : -6
+
+                animateConfig = {
+                  x: [activeThrow.startX, midX, exitX],
+                  y: [activeThrow.startY, midY, exitY],
+                  scale: 1,
+                  rotate: [activeThrow.startRotate, midRotate, exitRotate],
+                  opacity: 1,
+                }
+                transitionConfig = {
+                  duration: 0.28,
+                  ease: [0.2, 0.9, 0.25, 1],
+                  times: [0, 0.36, 1],
+                }
+              } else if (isTopCard) {
+                animateConfig = {
+                  x: 0,
+                  y: 0,
+                  scale: 1,
+                  rotate: 0,
+                  opacity: 1,
+                }
+              }
+
+              return (
+                <MotionArticle
+                  key={`deck-${item.name}`}
+                  className="absolute left-0 top-0 max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
+                    width: `min(100%, ${textWidth + 260}px)`,
+                    zIndex: menuItems.length - depth,
+                    pointerEvents: isTopCard ? 'auto' : 'none',
+                  }}
+                  drag={isTopCard && !activeThrow}
+                  dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                  dragElastic={0.22}
+                  dragMomentum={false}
+                  onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
+                  onPointerEnter={
+                    isTopCard
+                      ? () => {
+                          isPointerOverTopCardRef.current = true
+                        }
+                      : undefined
+                  }
+                  onPointerLeave={
+                    isTopCard
+                      ? () => {
+                          isPointerOverTopCardRef.current = false
+                          wheelDeltaRef.current = 0
+                        }
+                      : undefined
+                  }
+                  animate={animateConfig}
+                  transition={transitionConfig}
+                  onAnimationComplete={
+                    isTopCard && activeThrow ? completeDeckCycle : undefined
+                  }
+                >
+                  {renderCardBody(item, textWidth, measuredHeight)}
+                </MotionArticle>
+              )
+            })}
+          </div>
+
+          <div className="relative hidden h-[min(72vh,620px)] lg:block">
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-[46%] rounded-full bg-[radial-gradient(circle,rgba(247,220,182,0.42)_0%,rgba(247,220,182,0.16)_38%,rgba(247,220,182,0)_74%)] blur-2xl" />
+              <div className="absolute left-[56%] top-[40%] h-[46%] w-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,246,230,0.72)_0%,rgba(255,246,230,0.24)_42%,rgba(255,246,230,0)_78%)] blur-xl" />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <motion.img
+                key={topItem?.name}
+                src={topMenuImage}
+                alt={topItem ? `${topItem.name} menu item` : 'Menu item'}
+                className="relative z-10 h-[112%] w-[112%] max-w-none object-contain drop-shadow-[0_30px_34px_rgba(43,29,16,0.2)]"
+                initial={{ opacity: 0, scale: 0.9, rotate: -1.7, x: 0, y: 6 }}
+                animate={{
+                  opacity: [0, 1, 1, 1, 1],
+                  scale: [0.9, 1.06, 0.99, 1.015, 1],
+                  rotate: [-1.7, 1.1, -0.85, 0.45, 0],
+                  x: [0, -4, 4, -1, 0],
+                  y: [6, -2, 1, 0, 0],
                 }}
-                drag={isTopCard && !activeThrow}
-                dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                dragElastic={0.22}
-                dragMomentum={false}
-                onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
-                onPointerEnter={
-                  isTopCard
-                    ? () => {
-                        isPointerOverTopCardRef.current = true
-                      }
-                    : undefined
-                }
-                onPointerLeave={
-                  isTopCard
-                    ? () => {
-                        isPointerOverTopCardRef.current = false
-                        wheelDeltaRef.current = 0
-                      }
-                    : undefined
-                }
-                animate={animateConfig}
-                transition={transitionConfig}
-                onAnimationComplete={
-                  isTopCard && activeThrow ? completeDeckCycle : undefined
-                }
-              >
-                {renderCardBody(item, textWidth, measuredHeight)}
-              </MotionArticle>
-            )
-          })}
+                transition={{
+                  duration: 0.36,
+                  ease: 'easeOut',
+                  times: [0, 0.22, 0.5, 0.76, 1],
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

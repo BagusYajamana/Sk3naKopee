@@ -265,13 +265,14 @@ function MenuHighlights() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start xl:grid-cols-[minmax(0,1fr)_500px]">
-          <div
-            ref={deckRef}
-            className="relative mx-auto w-full overflow-hidden touch-none pb-4"
-            style={{ minHeight: `${deckHeight}px` }}
-          >
-            {deckOrder.map((itemIndex, depth) => {
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center xl:grid-cols-[minmax(0,1fr)_500px]">
+          <div className="lg:flex lg:h-[min(72vh,620px)] lg:items-center">
+            <div
+              ref={deckRef}
+              className="relative mx-auto w-full overflow-hidden touch-none pb-4"
+              style={{ minHeight: `${deckHeight}px` }}
+            >
+              {deckOrder.map((itemIndex, depth) => {
               const item = menuItems[itemIndex]
               const layout = layouts[itemIndex]
               const textWidth = layout?.width ?? 360
@@ -340,47 +341,48 @@ function MenuHighlights() {
                 }
               }
 
-              return (
-                <MotionArticle
-                  key={`deck-${item.name}`}
-                  className="absolute left-0 top-0 max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
-                  style={{
-                    backgroundColor: '#ffffff',
-                    boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
-                    width: `min(100%, ${textWidth + 260}px)`,
-                    zIndex: menuItems.length - depth,
-                    pointerEvents: isTopCard ? 'auto' : 'none',
-                  }}
-                  drag={isTopCard && !activeThrow}
-                  dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                  dragElastic={0.22}
-                  dragMomentum={false}
-                  onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
-                  onPointerEnter={
-                    isTopCard
-                      ? () => {
-                          isPointerOverTopCardRef.current = true
-                        }
-                      : undefined
-                  }
-                  onPointerLeave={
-                    isTopCard
-                      ? () => {
-                          isPointerOverTopCardRef.current = false
-                          wheelDeltaRef.current = 0
-                        }
-                      : undefined
-                  }
-                  animate={animateConfig}
-                  transition={transitionConfig}
-                  onAnimationComplete={
-                    isTopCard && activeThrow ? completeDeckCycle : undefined
-                  }
-                >
-                  {renderCardBody(item, textWidth, measuredHeight)}
-                </MotionArticle>
-              )
-            })}
+                return (
+                  <MotionArticle
+                    key={`deck-${item.name}`}
+                    className="absolute left-0 top-0 max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
+                    style={{
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
+                      width: `min(100%, ${textWidth + 260}px)`,
+                      zIndex: menuItems.length - depth,
+                      pointerEvents: isTopCard ? 'auto' : 'none',
+                    }}
+                    drag={isTopCard && !activeThrow}
+                    dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                    dragElastic={0.22}
+                    dragMomentum={false}
+                    onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
+                    onPointerEnter={
+                      isTopCard
+                        ? () => {
+                            isPointerOverTopCardRef.current = true
+                          }
+                        : undefined
+                    }
+                    onPointerLeave={
+                      isTopCard
+                        ? () => {
+                            isPointerOverTopCardRef.current = false
+                            wheelDeltaRef.current = 0
+                          }
+                        : undefined
+                    }
+                    animate={animateConfig}
+                    transition={transitionConfig}
+                    onAnimationComplete={
+                      isTopCard && activeThrow ? completeDeckCycle : undefined
+                    }
+                  >
+                    {renderCardBody(item, textWidth, measuredHeight)}
+                  </MotionArticle>
+                )
+              })}
+            </div>
           </div>
 
           <div className="relative hidden h-[min(72vh,620px)] lg:block">

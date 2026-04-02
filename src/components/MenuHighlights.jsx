@@ -9,6 +9,9 @@ import skenaNightBloomImage from '../assets/images/skena-night-bloom.png'
 const DECK_VISIBLE_DEPTH = 3
 const SWIPE_DISTANCE_THRESHOLD = 70
 const SWIPE_VELOCITY_THRESHOLD = 520
+const HOLD_TO_FLIP_MS = 340
+const HOLD_MOVE_THRESHOLD_PX = 4
+const FLIP_RETURN_DELAY_MS = 500
 const menuImageByName = {
   Espresso: espressoImage,
   'Pour Over': pourOverImage,
@@ -87,10 +90,20 @@ function MenuHighlights() {
   const wheelDeltaRef = useRef(0)
   const isPointerOverTopCardRef = useRef(false)
   const cycleLockRef = useRef(false)
+  const holdFlipTimerRef = useRef(null)
+  const flipReturnTimerRef = useRef(null)
+  const holdPointerRef = useRef({
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    moved: false,
+  })
   const [deckOrder, setDeckOrder] = useState(() =>
     menuItems.map((_, index) => index),
   )
   const [activeThrow, setActiveThrow] = useState(null)
+  const [isTopCardFlipped, setIsTopCardFlipped] = useState(false)
   const [deckBounds, setDeckBounds] = useState(() => ({
     width: 0,
     height: 0,
@@ -99,8 +112,30 @@ function MenuHighlights() {
   useLayoutEffect(() => {
     setDeckOrder(menuItems.map((_, index) => index))
     setActiveThrow(null)
+    setIsTopCardFlipped(false)
     cycleLockRef.current = false
   }, [menuItems])
+
+  const clearHoldFlipTimer = useCallback(() => {
+    if (holdFlipTimerRef.current !== null) {
+      window.clearTimeout(holdFlipTimerRef.current)
+      holdFlipTimerRef.current = null
+    }
+  }, [])
+
+  const clearFlipReturnTimer = useCallback(() => {
+    if (flipReturnTimerRef.current !== null) {
+      window.clearTimeout(flipReturnTimerRef.current)
+      flipReturnTimerRef.current = null
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    return () => {
+      clearHoldFlipTimer()
+      clearFlipReturnTimer()
+    }
+  }, [clearFlipReturnTimer, clearHoldFlipTimer])
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -167,6 +202,12 @@ function MenuHighlights() {
         return
       }
 
+      clearHoldFlipTimer()
+      clearFlipReturnTimer()
+      holdPointerRef.current.active = false
+      holdPointerRef.current.pointerId = null
+      holdPointerRef.current.moved = false
+      setIsTopCardFlipped(false)
       cycleLockRef.current = true
       setActiveThrow({
         direction,
@@ -175,7 +216,7 @@ function MenuHighlights() {
         startRotate: clamp((seed.x ?? 0) / 18, -14, 14),
       })
     },
-    [menuItems.length],
+    [clearFlipReturnTimer, clearHoldFlipTimer, menuItems.length],
   )
 
   const completeDeckCycle = useCallback(() => {
@@ -243,6 +284,81 @@ function MenuHighlights() {
     [startDeckCycle],
   )
 
+  const handleTopCardPointerDown = useCallback(
+    (event) => {
+      const isMobileTouch =
+        event.pointerType === 'touch' &&
+        (typeof window === 'undefined' ? false : window.innerWidth < 1024)
+      if (!isMobileTouch || activeThrow || isTopCardFlipped) {
+        return
+      }
+
+      clearFlipReturnTimer()
+      clearHoldFlipTimer()
+      holdPointerRef.current = {
+        active: true,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        moved: false,
+      }
+
+      holdFlipTimerRef.current = window.setTimeout(() => {
+        const hold = holdPointerRef.current
+        if (!hold.active || hold.moved) {
+          return
+        }
+        setIsTopCardFlipped(true)
+      }, HOLD_TO_FLIP_MS)
+    },
+    [activeThrow, clearFlipReturnTimer, clearHoldFlipTimer, isTopCardFlipped],
+  )
+
+  const handleTopCardPointerMove = useCallback(
+    (event) => {
+      const hold = holdPointerRef.current
+      if (!hold.active || hold.pointerId !== event.pointerId) {
+        return
+      }
+
+      const distance = Math.hypot(
+        event.clientX - hold.startX,
+        event.clientY - hold.startY,
+      )
+      if (distance <= HOLD_MOVE_THRESHOLD_PX) {
+        return
+      }
+
+      hold.moved = true
+      clearHoldFlipTimer()
+    },
+    [clearHoldFlipTimer],
+  )
+
+  const queueFlipBack = useCallback(() => {
+    clearFlipReturnTimer()
+    flipReturnTimerRef.current = window.setTimeout(() => {
+      setIsTopCardFlipped(false)
+    }, FLIP_RETURN_DELAY_MS)
+  }, [clearFlipReturnTimer])
+
+  const handleTopCardPointerRelease = useCallback(
+    (event) => {
+      const hold = holdPointerRef.current
+      if (hold.pointerId !== null && hold.pointerId !== event.pointerId) {
+        return
+      }
+
+      clearHoldFlipTimer()
+      holdPointerRef.current.active = false
+      holdPointerRef.current.pointerId = null
+      if (isTopCardFlipped) {
+        queueFlipBack()
+      }
+    },
+    [clearHoldFlipTimer, isTopCardFlipped, queueFlipBack],
+  )
+
   const topIndex = deckOrder[0] ?? 0
   const topLayout = layouts[topIndex]
   const deckHeight = Math.max((topLayout?.height ?? 120) + 265, 380)
@@ -270,11 +386,12 @@ function MenuHighlights() {
             <div
               ref={deckRef}
               className="relative mx-auto w-full overflow-hidden touch-none pb-4"
-              style={{ minHeight: `${deckHeight}px` }}
+              style={{ minHeight: `${deckHeight}px`, perspective: '1400px' }}
             >
               {deckOrder.map((itemIndex, depth) => {
               const item = menuItems[itemIndex]
               const layout = layouts[itemIndex]
+              const backImage = menuImageByName[item.name] ?? espressoImage
               const textWidth = layout?.width ?? 360
               const measuredHeight = layout?.height ?? 120
               const isTopCard = depth === 0
@@ -291,6 +408,7 @@ function MenuHighlights() {
                 y: depthOffsetY,
                 scale: depthScale,
                 rotate: 0,
+                rotateY: 0,
                 opacity: hiddenDepth ? 0 : depthOpacity,
               }
               let transitionConfig = { duration: 0 }
@@ -324,6 +442,7 @@ function MenuHighlights() {
                   y: [activeThrow.startY, midY, exitY],
                   scale: 1,
                   rotate: [activeThrow.startRotate, midRotate, exitRotate],
+                  rotateY: 0,
                   opacity: 1,
                 }
                 transitionConfig = {
@@ -333,11 +452,16 @@ function MenuHighlights() {
                 }
               } else if (isTopCard) {
                 animateConfig = {
-                  x: 0,
-                  y: 0,
+                  x: isTopCardFlipped ? -8 : 0,
+                  y: isTopCardFlipped ? -14 : 0,
                   scale: 1,
-                  rotate: 0,
+                  rotate: isTopCardFlipped ? -4 : 0,
+                  rotateY: isTopCardFlipped ? 180 : 0,
                   opacity: 1,
+                }
+                transitionConfig = {
+                  duration: 0.34,
+                  ease: [0.22, 0.8, 0.32, 1],
                 }
               }
 
@@ -352,12 +476,20 @@ function MenuHighlights() {
                       width: `min(100%, ${textWidth + 260}px)`,
                       zIndex: menuItems.length - depth,
                       pointerEvents: isTopCard ? 'auto' : 'none',
+                      transformStyle: 'preserve-3d',
+                      willChange: 'transform',
                     }}
-                    drag={isTopCard && !activeThrow}
+                    drag={isTopCard && !activeThrow && !isTopCardFlipped}
                     dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
                     dragElastic={0.22}
                     dragMomentum={false}
                     onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
+                    onPointerDown={isTopCard ? handleTopCardPointerDown : undefined}
+                    onPointerMove={isTopCard ? handleTopCardPointerMove : undefined}
+                    onPointerUp={isTopCard ? handleTopCardPointerRelease : undefined}
+                    onPointerCancel={
+                      isTopCard ? handleTopCardPointerRelease : undefined
+                    }
                     onPointerEnter={
                       isTopCard
                         ? () => {
@@ -379,7 +511,19 @@ function MenuHighlights() {
                       isTopCard && activeThrow ? completeDeckCycle : undefined
                     }
                   >
-                    {renderCardBody(item, textWidth, measuredHeight)}
+                    <div className="relative h-full w-full [transform-style:preserve-3d]">
+                      <div className="[backface-visibility:hidden]">
+                        {renderCardBody(item, textWidth, measuredHeight)}
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center rounded-[inherit] bg-[#fffdf9] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                        <img
+                          src={backImage}
+                          alt={`${item.name} menu image`}
+                          className="h-full w-full object-contain"
+                          draggable={false}
+                        />
+                      </div>
+                    </div>
                   </MotionArticle>
                 )
               })}

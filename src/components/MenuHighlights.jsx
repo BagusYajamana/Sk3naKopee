@@ -9,6 +9,7 @@ import skenaNightBloomImage from '../assets/images/skena-night-bloom.png'
 const DECK_VISIBLE_DEPTH = 3
 const SWIPE_DISTANCE_THRESHOLD = 70
 const SWIPE_VELOCITY_THRESHOLD = 520
+const DECK_CARD_TOP_OFFSET = 64
 const HOLD_TO_FLIP_MS = 340
 const HOLD_MOVE_THRESHOLD_PX = 4
 const FLIP_RETURN_DELAY_MS = 500
@@ -361,7 +362,8 @@ function MenuHighlights() {
 
   const topIndex = deckOrder[0] ?? 0
   const topLayout = layouts[topIndex]
-  const deckHeight = Math.max((topLayout?.height ?? 120) + 265, 380)
+  const deckHeight =
+    Math.max((topLayout?.height ?? 120) + 265, 380) + DECK_CARD_TOP_OFFSET
   const topItem = menuItems[topIndex]
   const topMenuImage = menuImageByName[topItem?.name] ?? espressoImage
 

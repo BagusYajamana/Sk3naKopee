@@ -1,9 +1,9 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import cofeeFarmImg from '../assets/images/cofee-farm.png'
-import cofeeGrindImg from '../assets/images/cofee-grind.png'
-import cofeeGrindedImg from '../assets/images/cofee-grinded.png'
-import cofeeRoastImg from '../assets/images/cofee-roast.png'
+import cofeeFarmImg from '../assets/images/cofee-farm.webp'
+import cofeeGrindImg from '../assets/images/cofee-grind.webp'
+import cofeeGrindedImg from '../assets/images/cofee-grinded.webp'
+import cofeeRoastImg from '../assets/images/cofee-roast.webp'
 
 // ── Shared scroll-driven zoom values ────────────────────────────────────────
 

@@ -1,10 +1,10 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
-import espressoImage from '../assets/images/espresso.png'
-import pourOverImage from '../assets/images/pour-over.png'
-import kopiSusuGulaArenImage from '../assets/images/kopi-susu-gula-aren.png'
-import skenaNightBloomImage from '../assets/images/skena-night-bloom.png'
+import espressoImage from '../assets/images/espresso.webp'
+import pourOverImage from '../assets/images/pour-over.webp'
+import kopiSusuGulaArenImage from '../assets/images/kopi-susu-gula-aren.webp'
+import skenaNightBloomImage from '../assets/images/skena-night-bloom.webp'
 
 const DECK_VISIBLE_DEPTH = 3
 const SWIPE_DISTANCE_THRESHOLD = 70

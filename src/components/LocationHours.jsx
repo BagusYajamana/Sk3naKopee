@@ -1,4 +1,4 @@
-import locationImage from '../assets/images/location-image.png'
+import locationImage from '../assets/images/location-image.webp'
 
 function LocationHours() {
   const hours = [

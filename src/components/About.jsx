@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useAboutOrbLayout } from '../hooks/useAboutOrbLayout'
+import coffeBeanImage from '../assets/images/coffe-bean.webp'
 
 const ABOUT_PARAGRAPHS = [
   'At Skena, we believe coffee is more than a stimulant; it is a conversation between the soil and the soul. Our journey began in the misty highlands of West Java, where we found more than just beans, we found a community of artisans dedicated to preserving Indonesian coffee heritage.',
@@ -344,7 +345,7 @@ function About() {
               ref={(element) => {
                 activeImageRefs.current[index] = element
               }}
-              src="/assets/images/coffee-bean.png"
+              src={coffeBeanImage}
               alt={index === 0 ? 'Coffee bean' : ''}
               className="block h-auto select-none"
               style={{ width: `${ACTIVE_BEANS[index].size}px` }}
@@ -356,7 +357,7 @@ function About() {
         {DECORATIVE_BEANS.map((bean, index) => (
           <motion.img
             key={`decorative-bean-${index}`}
-            src="/assets/images/coffee-bean.png"
+            src={coffeBeanImage}
             alt=""
             className="pointer-events-none absolute z-10 select-none"
             style={{

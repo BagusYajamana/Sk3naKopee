@@ -179,13 +179,17 @@ function FarmSection() {
   )
 }
 
-// ── Section 2: "Born" fade — centered ───────────────────────────────────────
+// ── Section 2: Roast — top-left text ────────────────────────────────────────
 
 function RoastSection() {
   const containerRef = useRef(null)
   const { scrollYProgress, scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
 
-  const wordOpacity = useTransform(scrollYProgress, [0.04, 0.26], [0, 1])
+  const headlineOpacity = useTransform(scrollYProgress, [0.04, 0.26], [0, 1])
+  const headlineBlurRaw = useTransform(scrollYProgress, [0.04, 0.26], [14, 0])
+  const headlineFilter = useTransform(headlineBlurRaw, (v) => `blur(${v}px)`)
+  const subtextOpacity = useTransform(scrollYProgress, [0.18, 0.38], [0, 1])
+  const subtextY = useTransform(scrollYProgress, [0.18, 0.38], [20, 0])
 
   return (
     <div ref={containerRef} style={{ height: '160vh' }}>
@@ -205,32 +209,58 @@ function RoastSection() {
           gradientDir="180deg"
         />
 
-        {/* Word — centered */}
+        {/* Text — top-left */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
+            alignItems: 'flex-start',
+            padding: 'clamp(28px, 5.5vw, 88px)',
+            paddingTop: 'clamp(80px, 13vh, 128px)',
+            textAlign: 'left',
             pointerEvents: 'none',
           }}
         >
-          <motion.span
+          <motion.h2
             style={{
               fontFamily: '"Newsreader", Georgia, serif',
-              fontSize: 'clamp(5rem, 13vw, 12rem)',
+              fontSize: 'clamp(2.25rem, 5.5vw, 5.25rem)',
               fontStyle: 'italic',
               fontWeight: 400,
-              lineHeight: 1.0,
-              letterSpacing: '-0.03em',
+              lineHeight: 1.08,
+              letterSpacing: '-0.02em',
               color: '#ffffff',
-              whiteSpace: 'nowrap',
-              opacity: wordOpacity,
+              margin: 0,
+              marginBottom: '0.75em',
+              maxWidth: '14ch',
+              opacity: headlineOpacity,
+              filter: headlineFilter,
+              willChange: 'opacity, filter',
             }}
           >
-            Born
-          </motion.span>
+            The Moment Everything Changes
+          </motion.h2>
+
+          <motion.p
+            style={{
+              fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+              fontSize: 'clamp(0.875rem, 1.4vw, 1.0625rem)',
+              fontWeight: 400,
+              lineHeight: 1.72,
+              color: 'rgba(255, 255, 255, 0.70)',
+              margin: 0,
+              maxWidth: '36ch',
+              opacity: subtextOpacity,
+              y: subtextY,
+              willChange: 'opacity, transform',
+            }}
+          >
+            Four hundred degrees. Two minutes.{'\n'}
+            A bean that will never be the same.
+          </motion.p>
         </div>
 
         <SectionCounter index={1} opacity={counterOpacity} />
@@ -239,7 +269,7 @@ function RoastSection() {
   )
 }
 
-// ── Sections 3 & 4: standard bottom-left layout ──────────────────────────────
+// ── Sections 3 & 4: top-left text layout ────────────────────────────────────
 
 function ZoomSection({ image, headline, subtext, index }) {
   const containerRef = useRef(null)
@@ -264,16 +294,18 @@ function ZoomSection({ image, headline, subtext, index }) {
       >
         <ZoomBackground image={image} scale={scale} overlayOpacity={overlayOpacity} />
 
-        {/* Text — bottom-left */}
+        {/* Text — top-left */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'flex-end',
+            justifyContent: 'flex-start',
+            alignItems: 'flex-start',
             padding: 'clamp(28px, 5.5vw, 88px)',
-            paddingBottom: 'clamp(60px, 10vh, 108px)',
+            paddingTop: 'clamp(80px, 13vh, 128px)',
+            textAlign: 'left',
             pointerEvents: 'none',
           }}
         >
@@ -330,14 +362,14 @@ function Hero() {
       <RoastSection />
       <ZoomSection
         image={cofeeGrindImg}
-        headline="Ground at the Moment of Order"
-        subtext="Oxidation is the enemy of flavor. We grind fresh for every cup, every time."
+        headline="Broken Further, Purposefully"
+        subtext={<>The bean that endured fire now surrenders its form.{'\n'}This is where flavor is unlocked.</>}
         index={2}
       />
       <ZoomSection
         image={cofeeGrindedImg}
-        headline="Every Gram, Intentional"
-        subtext="Precision is not obsession. It is a quiet form of respect for the farmer who grew it."
+        headline="What Remains is Everything"
+        subtext={<>From cherry to dust. Burned. Broken. Ground to nothing.{'\n'}And yet — this is the most beautiful it has ever been.</>}
         index={3}
       />
     </div>

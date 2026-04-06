@@ -183,7 +183,9 @@ function FarmSection() {
 
 function RoastSection() {
   const containerRef = useRef(null)
-  const { scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
+  const { scrollYProgress, scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
+
+  const headlineScale = useTransform(scrollYProgress, [0, 1], [1.5, 1.0])
 
   return (
     <div ref={containerRef} style={{ height: '160vh' }}>
@@ -218,7 +220,7 @@ function RoastSection() {
             pointerEvents: 'none',
           }}
         >
-          <h2
+          <motion.h2
             style={{
               fontFamily: '"Newsreader", Georgia, serif',
               fontSize: 'clamp(2.25rem, 5.5vw, 5.25rem)',
@@ -230,10 +232,13 @@ function RoastSection() {
               margin: 0,
               marginBottom: '0.75em',
               maxWidth: '14ch',
+              scale: headlineScale,
+              transformOrigin: 'top left',
+              willChange: 'transform',
             }}
           >
             The Moment Everything Changes
-          </h2>
+          </motion.h2>
 
           <p
             style={{
@@ -261,7 +266,9 @@ function RoastSection() {
 
 function ZoomSection({ image, headline, subtext, index }) {
   const containerRef = useRef(null)
-  const { scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
+  const { scrollYProgress, scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
+
+  const headlineScale = useTransform(scrollYProgress, [0, 1], [1.5, 1.0])
 
   return (
     <div ref={containerRef} style={{ height: '160vh' }}>
@@ -291,7 +298,7 @@ function ZoomSection({ image, headline, subtext, index }) {
             pointerEvents: 'none',
           }}
         >
-          <h2
+          <motion.h2
             style={{
               fontFamily: '"Newsreader", Georgia, serif',
               fontSize: 'clamp(2.25rem, 5.5vw, 5.25rem)',
@@ -303,10 +310,13 @@ function ZoomSection({ image, headline, subtext, index }) {
               margin: 0,
               marginBottom: '0.8em',
               maxWidth: '17ch',
+              scale: headlineScale,
+              transformOrigin: 'top left',
+              willChange: 'transform',
             }}
           >
             {headline}
-          </h2>
+          </motion.h2>
 
           <p
             style={{

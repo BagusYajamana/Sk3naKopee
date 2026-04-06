@@ -9,7 +9,7 @@ const ABOUT_PARAGRAPHS = [
 ]
 
 const ACTIVE_BEANS = [
-  { x: 120, y: 90, vx: 16, vy: 13, size: 170, rotation: 4, interactive: true },
+  { x: 120, y: 90, mobileX: 155, mobileY: 293, vx: 16, vy: 13, size: 170, rotation: 4, interactive: true },
   { x: 430, y: 160, vx: -12, vy: 10, size: 148, rotation: 48, interactive: false },
   { x: 640, y: 60, vx: 11, vy: -12, size: 136, rotation: 92, interactive: false },
 ]
@@ -38,24 +38,27 @@ function About() {
     ACTIVE_BEANS.map((bean) => ({ width: bean.size, height: bean.size })),
   )
   const dragRef = useRef(null)
-  const activeBeansRef = useRef(
-    ACTIVE_BEANS.map((bean) => ({
-      x: bean.x,
-      y: bean.y,
+  const activeBeansRef = useRef(null)
+  if (activeBeansRef.current === null) {
+    const initMobile = typeof window !== 'undefined' && window.innerWidth < 768
+    activeBeansRef.current = ACTIVE_BEANS.map((bean, i) => ({
+      x: i === 0 && initMobile ? bean.mobileX ?? bean.x : bean.x,
+      y: i === 0 && initMobile ? bean.mobileY ?? bean.y : bean.y,
       vx: bean.vx,
       vy: bean.vy,
       paused: false,
-    })),
-  )
+    }))
+  }
 
-  const [activeRender, setActiveRender] = useState(
-    ACTIVE_BEANS.map((bean) => ({
-      x: bean.x,
-      y: bean.y,
+  const [activeRender, setActiveRender] = useState(() => {
+    const initMobile = typeof window !== 'undefined' && window.innerWidth < 768
+    return ACTIVE_BEANS.map((bean, i) => ({
+      x: i === 0 && initMobile ? bean.mobileX ?? bean.x : bean.x,
+      y: i === 0 && initMobile ? bean.mobileY ?? bean.y : bean.y,
       paused: false,
       dragging: false,
-    })),
-  )
+    }))
+  })
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth < 768 : false,
   )

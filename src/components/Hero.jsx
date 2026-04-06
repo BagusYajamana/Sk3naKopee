@@ -183,13 +183,7 @@ function FarmSection() {
 
 function RoastSection() {
   const containerRef = useRef(null)
-  const { scrollYProgress, scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
-
-  const headlineOpacity = useTransform(scrollYProgress, [0.04, 0.26], [0, 1])
-  const headlineBlurRaw = useTransform(scrollYProgress, [0.04, 0.26], [14, 0])
-  const headlineFilter = useTransform(headlineBlurRaw, (v) => `blur(${v}px)`)
-  const subtextOpacity = useTransform(scrollYProgress, [0.18, 0.38], [0, 1])
-  const subtextY = useTransform(scrollYProgress, [0.18, 0.38], [20, 0])
+  const { scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
 
   return (
     <div ref={containerRef} style={{ height: '160vh' }}>
@@ -224,7 +218,7 @@ function RoastSection() {
             pointerEvents: 'none',
           }}
         >
-          <motion.h2
+          <h2
             style={{
               fontFamily: '"Newsreader", Georgia, serif',
               fontSize: 'clamp(2.25rem, 5.5vw, 5.25rem)',
@@ -236,15 +230,12 @@ function RoastSection() {
               margin: 0,
               marginBottom: '0.75em',
               maxWidth: '14ch',
-              opacity: headlineOpacity,
-              filter: headlineFilter,
-              willChange: 'opacity, filter',
             }}
           >
             The Moment Everything Changes
-          </motion.h2>
+          </h2>
 
-          <motion.p
+          <p
             style={{
               fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
               fontSize: 'clamp(0.875rem, 1.4vw, 1.0625rem)',
@@ -253,14 +244,11 @@ function RoastSection() {
               color: 'rgba(255, 255, 255, 0.70)',
               margin: 0,
               maxWidth: '36ch',
-              opacity: subtextOpacity,
-              y: subtextY,
-              willChange: 'opacity, transform',
+              whiteSpace: 'pre-line',
             }}
           >
-            Four hundred degrees. Two minutes.{'\n'}
-            A bean that will never be the same.
-          </motion.p>
+            {'Four hundred degrees. Two minutes.\nA bean that will never be the same.'}
+          </p>
         </div>
 
         <SectionCounter index={1} opacity={counterOpacity} />
@@ -273,13 +261,7 @@ function RoastSection() {
 
 function ZoomSection({ image, headline, subtext, index }) {
   const containerRef = useRef(null)
-  const { scrollYProgress, scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
-
-  const headlineOpacity = useTransform(scrollYProgress, [0.04, 0.26], [0, 1])
-  const headlineBlurRaw = useTransform(scrollYProgress, [0.04, 0.26], [14, 0])
-  const headlineFilter = useTransform(headlineBlurRaw, (v) => `blur(${v}px)`)
-  const subtextOpacity = useTransform(scrollYProgress, [0.18, 0.38], [0, 1])
-  const subtextY = useTransform(scrollYProgress, [0.18, 0.38], [20, 0])
+  const { scale, overlayOpacity, counterOpacity } = useZoomScroll(containerRef)
 
   return (
     <div ref={containerRef} style={{ height: '160vh' }}>
@@ -309,7 +291,7 @@ function ZoomSection({ image, headline, subtext, index }) {
             pointerEvents: 'none',
           }}
         >
-          <motion.h2
+          <h2
             style={{
               fontFamily: '"Newsreader", Georgia, serif',
               fontSize: 'clamp(2.25rem, 5.5vw, 5.25rem)',
@@ -321,15 +303,12 @@ function ZoomSection({ image, headline, subtext, index }) {
               margin: 0,
               marginBottom: '0.8em',
               maxWidth: '17ch',
-              opacity: headlineOpacity,
-              filter: headlineFilter,
-              willChange: 'opacity, filter',
             }}
           >
             {headline}
-          </motion.h2>
+          </h2>
 
-          <motion.p
+          <p
             style={{
               fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
               fontSize: 'clamp(0.875rem, 1.4vw, 1.0625rem)',
@@ -338,13 +317,11 @@ function ZoomSection({ image, headline, subtext, index }) {
               color: 'rgba(255, 255, 255, 0.70)',
               margin: 0,
               maxWidth: '46ch',
-              opacity: subtextOpacity,
-              y: subtextY,
-              willChange: 'opacity, transform',
+              whiteSpace: 'pre-line',
             }}
           >
             {subtext}
-          </motion.p>
+          </p>
         </div>
 
         <SectionCounter index={index} opacity={counterOpacity} />
@@ -363,13 +340,13 @@ function Hero() {
       <ZoomSection
         image={cofeeGrindImg}
         headline="Broken Further, Purposefully"
-        subtext={<>The bean that endured fire now surrenders its form.{'\n'}This is where flavor is unlocked.</>}
+        subtext={'The bean that endured fire now surrenders its form.\nThis is where flavor is unlocked.'}
         index={2}
       />
       <ZoomSection
         image={cofeeGrindedImg}
         headline="What Remains is Everything"
-        subtext={<>From cherry to dust. Burned. Broken. Ground to nothing.{'\n'}And yet — this is the most beautiful it has ever been.</>}
+        subtext={'From cherry to dust. Burned. Broken. Ground to nothing.\nAnd yet — this is the most beautiful it has ever been.'}
         index={3}
       />
     </div>

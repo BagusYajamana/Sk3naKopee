@@ -205,6 +205,25 @@ function MenuHighlights() {
 
     return deckOrder
   }, [deckOrder, menuItems])
+  const cardLayoutMetrics = useMemo(() => {
+    if (layouts.length === 0) {
+      return {
+        textWidth: 360,
+        measuredHeight: 120,
+      }
+    }
+
+    return layouts.reduce(
+      (largest, layout) => ({
+        textWidth: Math.max(largest.textWidth, layout?.width ?? 360),
+        measuredHeight: Math.max(largest.measuredHeight, layout?.height ?? 120),
+      }),
+      {
+        textWidth: 360,
+        measuredHeight: 120,
+      },
+    )
+  }, [layouts])
   const dateSeed = useMemo(() => getDateSeed(todayKey), [todayKey])
   const recommendedIndex = useMemo(() => {
     if (menuItems.length === 0) {
@@ -311,8 +330,26 @@ function MenuHighlights() {
               transition={RECOMMENDED_BADGE_TRANSITION}
               className="pointer-events-none absolute right-0 top-0 z-10"
             >
-              <span className="inline-flex border border-[color:color-mix(in_srgb,#a65d2f_22%,transparent)] bg-[color:color-mix(in_srgb,#e8b47b_56%,#fff4df_44%)] px-4 py-2 font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.1em] text-[#7a4422] uppercase shadow-[0_10px_18px_rgba(122,68,34,0.12)] [border-radius:58%_42%_55%_45%/48%_58%_42%_52%]">
-                Recommended Today
+              <span className="relative inline-flex min-w-[10.5rem] items-center justify-center px-5 py-4 font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.1em] text-white uppercase drop-shadow-[0_8px_14px_rgba(111,60,32,0.22)]">
+                <svg
+                  viewBox="0 0 220 140"
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full overflow-visible"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M109 7c9 3 15 10 24 11 10 0 18-5 27-1 8 5 11 14 18 20 8 6 19 8 22 18 2 10-3 19-2 28 2 9 9 18 6 28-4 9-15 13-22 19-6 7-8 17-17 22-9 3-19-1-28 1-9 3-16 10-26 11-10-1-17-9-26-11-10-2-20 2-29-2-8-5-10-15-17-22-8-5-18-9-21-19-3-9 3-18 4-27 1-10-4-20-1-30 4-9 15-12 22-18 6-7 9-16 17-21 9-4 18 0 27 0 9-2 14-8 22-10Z"
+                    fill="#bf6542"
+                  />
+                  <path
+                    d="M108 18c7 3 12 9 19 10 8 1 15-4 22-1 6 4 8 11 14 15 6 4 15 6 18 14 2 8-3 15-2 22 1 8 7 15 5 23-3 7-11 10-16 15-5 5-7 14-14 17-7 3-15-1-22 1-7 2-13 9-22 9-8 0-14-7-21-9-8-2-16 2-23-1-7-4-9-12-14-17-6-5-14-7-17-15-2-7 2-15 3-22 1-8-4-16-2-24 3-7 11-10 17-14 5-5 7-12 14-16 7-3 15 1 22 0 7-1 12-7 19-9Z"
+                    fill="#a94f46"
+                    opacity="0.6"
+                  />
+                </svg>
+                <span className="relative z-10 whitespace-nowrap">
+                  Recommended Today
+                </span>
               </span>
             </motion.div>
           ) : null}
@@ -513,9 +550,8 @@ function MenuHighlights() {
   )
 
   const topIndex = activeDeckOrder[0] ?? 0
-  const topLayout = layouts[topIndex]
   const deckHeight =
-    Math.max((topLayout?.height ?? 120) + 265, 380) + DECK_CARD_TOP_OFFSET
+    Math.max(cardLayoutMetrics.measuredHeight + 265, 380) + DECK_CARD_TOP_OFFSET
   const topItem = menuItems[topIndex]
   const topMenuImage = topItem?.image
 
@@ -630,10 +666,9 @@ function MenuHighlights() {
                 >
                   {activeDeckOrder.map((itemIndex, depth) => {
                     const item = menuItems[itemIndex]
-                    const layout = layouts[itemIndex]
                     const backImage = item.image
-                    const textWidth = layout?.width ?? 360
-                    const measuredHeight = layout?.height ?? 120
+                    const textWidth = cardLayoutMetrics.textWidth
+                    const measuredHeight = cardLayoutMetrics.measuredHeight
                     const isTopCard = depth === 0
                     const hiddenDepth = depth >= DECK_VISIBLE_DEPTH
                     const depthOffsetY = depth * 12

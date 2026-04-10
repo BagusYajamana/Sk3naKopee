@@ -17,9 +17,31 @@ const CATEGORY_WORD_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0.8, 0.2, 1],
 }
+const CATEGORY_DECK_ENTER_TRANSITION = {
+  duration: 0.32,
+  ease: [0.2, 0.82, 0.24, 1],
+}
+const CATEGORY_DECK_EXIT_TRANSITION = {
+  duration: 0.24,
+  ease: [0.3, 0.86, 0.36, 1],
+}
 const FAN_TRANSITION = {
   duration: 0.34,
   ease: [0.22, 0.68, 0.24, 1],
+}
+const CATEGORY_DECK_LAYER_VARIANTS = {
+  enter: {},
+  center: {
+    transition: {
+      staggerChildren: 0.045,
+      delayChildren: 0.02,
+    },
+  },
+  exit: {
+    transition: {
+      when: 'afterChildren',
+    },
+  },
 }
 const menuImageByName = {
   Espresso: espressoImage,
@@ -70,6 +92,54 @@ function getBehindCardFanPosition(depth, visibleBehindCount) {
     x: slot * 34,
     y: 22 + Math.abs(slot) * 10 + behindIndex * 5,
     rotate: slot * 6.5,
+  }
+}
+
+function getCategoryCardExitTrajectory(depth, visibleCount, direction) {
+  if (depth === 0) {
+    return {
+      x: direction === 'left' ? -38 : 38,
+      y: -92,
+      rotate: direction === 'left' ? -8 : 8,
+    }
+  }
+
+  const visibleBehindCount = Math.max(visibleCount - 1, 1)
+  const behindIndex = depth - 1
+  const slot =
+    visibleBehindCount === 1
+      ? 0
+      : (Math.min(behindIndex, visibleBehindCount - 1) / (visibleBehindCount - 1)) *
+          2 -
+        1
+
+  return {
+    x: slot * 220,
+    y: -56 - depth * 26 + Math.abs(slot) * 18,
+    rotate: slot * 18 + (slot === 0 ? 0 : Math.sign(slot) * 6),
+  }
+}
+
+function getCategoryCardPresenceVariants() {
+  return {
+    enter: ({ direction }) => ({
+      x: direction === 'left' ? 132 : -132,
+      y: 0,
+      rotate: direction === 'left' ? 3 : -3,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      y: 0,
+      rotate: 0,
+      opacity: 1,
+      transition: CATEGORY_DECK_ENTER_TRANSITION,
+    },
+    exit: ({ depth, direction, visibleCount }) => ({
+      ...getCategoryCardExitTrajectory(depth, visibleCount, direction),
+      opacity: 0,
+      transition: CATEGORY_DECK_EXIT_TRANSITION,
+    }),
   }
 }
 
@@ -125,6 +195,10 @@ function MenuHighlights() {
   const categoryLabel = selectedCategory?.label ?? ''
   const layouts = useMenuHighlightLayout(menuItems)
   const MotionArticle = motion.article
+  const categoryCardPresenceVariants = useMemo(
+    () => getCategoryCardPresenceVariants(),
+    [],
+  )
   const deckRef = useRef(null)
   const wheelDeltaRef = useRef(0)
   const isPointerOverTopCardRef = useRef(false)
@@ -518,150 +592,175 @@ function MenuHighlights() {
               onMouseEnter={() => setIsDeckFanned(true)}
               onMouseLeave={() => setIsDeckFanned(false)}
             >
-              {deckOrder.map((itemIndex, depth) => {
-                const item = menuItems[itemIndex]
-                const layout = layouts[itemIndex]
-                const backImage = menuImageByName[item.name] ?? espressoImage
-                const textWidth = layout?.width ?? 360
-                const measuredHeight = layout?.height ?? 120
-                const isTopCard = depth === 0
-                const hiddenDepth = depth >= DECK_VISIBLE_DEPTH
-                const depthOffsetY = depth * 12
-                const depthScale = 1 - depth * 0.035
-                const depthOpacity =
-                  depth === 0 ? 1 : depth === 1 ? 0.84 : depth === 2 ? 0.68 : 0
-                const visibleBehindCount = Math.min(
-                  Math.max(menuItems.length - 1, 0),
-                  DECK_VISIBLE_DEPTH - 1,
-                )
-                const fanOffset = getBehindCardFanPosition(depth, visibleBehindCount)
-                const throwWidth = deckBounds.width || 480
-                const throwHeight = deckBounds.height || 420
+              <AnimatePresence initial={false} mode="wait">
+                <motion.div
+                  key={`deck-layer-${categoryMotionKey}`}
+                  className="relative h-full w-full"
+                  variants={CATEGORY_DECK_LAYER_VARIANTS}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                >
+                  {deckOrder.map((itemIndex, depth) => {
+                    const item = menuItems[itemIndex]
+                    const layout = layouts[itemIndex]
+                    const backImage = menuImageByName[item.name] ?? espressoImage
+                    const textWidth = layout?.width ?? 360
+                    const measuredHeight = layout?.height ?? 120
+                    const isTopCard = depth === 0
+                    const hiddenDepth = depth >= DECK_VISIBLE_DEPTH
+                    const depthOffsetY = depth * 12
+                    const depthScale = 1 - depth * 0.035
+                    const depthOpacity =
+                      depth === 0 ? 1 : depth === 1 ? 0.84 : depth === 2 ? 0.68 : 0
+                    const visibleBehindCount = Math.min(
+                      Math.max(menuItems.length - 1, 0),
+                      DECK_VISIBLE_DEPTH - 1,
+                    )
+                    const fanOffset = getBehindCardFanPosition(depth, visibleBehindCount)
+                    const throwWidth = deckBounds.width || 480
+                    const throwHeight = deckBounds.height || 420
+                    const visibleCount = Math.min(menuItems.length, DECK_VISIBLE_DEPTH)
 
-                let animateConfig = {
-                  x: isDeckFanned ? fanOffset.x : 0,
-                  y: isDeckFanned ? fanOffset.y : depthOffsetY,
-                  scale: depthScale,
-                  rotate: isDeckFanned ? fanOffset.rotate : 0,
-                  rotateY: 0,
-                  opacity: hiddenDepth ? 0 : depthOpacity,
-                }
-                let transitionConfig = FAN_TRANSITION
-
-                if (isTopCard && activeThrow) {
-                  const isLeft = activeThrow.direction === 'left'
-                  const isRight = activeThrow.direction === 'right'
-                  const isUp = activeThrow.direction === 'up'
-                  const isDown = activeThrow.direction === 'down'
-                  const midX = isLeft ? -52 : isRight ? 52 : activeThrow.startX * 0.28
-                  const midY = isUp
-                    ? activeThrow.startY - 60
-                    : isDown
-                      ? activeThrow.startY + 42
-                      : activeThrow.startY - 26
-                  const exitX = isLeft ? -throwWidth - 160 : isRight ? throwWidth + 160 : 0
-                  const exitY = isUp
-                    ? -throwHeight - 180
-                    : isDown
-                      ? throwHeight + 180
-                      : throwHeight * 0.24
-                  const midRotate = isLeft
-                    ? -8
-                    : isRight
-                      ? 8
-                      : activeThrow.startRotate * 0.35
-                  const exitRotate = isLeft ? -16 : isRight ? 16 : isDown ? 6 : -6
-
-                  animateConfig = {
-                    x: [activeThrow.startX, midX, exitX],
-                    y: [activeThrow.startY, midY, exitY],
-                    scale: 1,
-                    rotate: [activeThrow.startRotate, midRotate, exitRotate],
-                    rotateY: 0,
-                    opacity: 1,
-                  }
-                  transitionConfig = {
-                    duration: 0.28,
-                    ease: [0.2, 0.9, 0.25, 1],
-                    times: [0, 0.36, 1],
-                  }
-                } else if (isTopCard) {
-                  animateConfig = {
-                    x: isTopCardFlipped ? -8 : 0,
-                    y: isTopCardFlipped ? -14 : 0,
-                    scale: 1,
-                    rotate: isTopCardFlipped ? -4 : 0,
-                    rotateY: isTopCardFlipped ? 180 : 0,
-                    opacity: 1,
-                  }
-                  transitionConfig = {
-                    duration: 0.34,
-                    ease: [0.22, 0.8, 0.32, 1],
-                  }
-                }
-
-                return (
-                  <MotionArticle
-                    key={`deck-${item.name}`}
-                  className="absolute left-0 top-0 mt-[54px] max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
-                    style={{
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
-                      border: '3px solid #6b3f2a',
-                      width: `min(100%, ${textWidth + 260}px)`,
-                      zIndex: menuItems.length - depth,
-                      pointerEvents: isTopCard ? 'auto' : 'none',
-                      transformStyle: 'preserve-3d',
-                      willChange: 'transform',
-                    }}
-                    drag={isTopCard && !activeThrow && !isTopCardFlipped}
-                    dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                    dragElastic={0.22}
-                    dragMomentum={false}
-                    onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
-                    onPointerDown={isTopCard ? handleTopCardPointerDown : undefined}
-                    onPointerMove={isTopCard ? handleTopCardPointerMove : undefined}
-                    onPointerUp={isTopCard ? handleTopCardPointerRelease : undefined}
-                    onPointerCancel={
-                      isTopCard ? handleTopCardPointerRelease : undefined
+                    let animateConfig = {
+                      x: isDeckFanned ? fanOffset.x : 0,
+                      y: isDeckFanned ? fanOffset.y : depthOffsetY,
+                      scale: depthScale,
+                      rotate: isDeckFanned ? fanOffset.rotate : 0,
+                      rotateY: 0,
+                      opacity: hiddenDepth ? 0 : depthOpacity,
                     }
-                    onPointerEnter={
-                      isTopCard
-                        ? () => {
-                            isPointerOverTopCardRef.current = true
+                    let transitionConfig = FAN_TRANSITION
+
+                    if (isTopCard && activeThrow) {
+                      const isLeft = activeThrow.direction === 'left'
+                      const isRight = activeThrow.direction === 'right'
+                      const isUp = activeThrow.direction === 'up'
+                      const isDown = activeThrow.direction === 'down'
+                      const midX = isLeft ? -52 : isRight ? 52 : activeThrow.startX * 0.28
+                      const midY = isUp
+                        ? activeThrow.startY - 60
+                        : isDown
+                          ? activeThrow.startY + 42
+                          : activeThrow.startY - 26
+                      const exitX =
+                        isLeft ? -throwWidth - 160 : isRight ? throwWidth + 160 : 0
+                      const exitY = isUp
+                        ? -throwHeight - 180
+                        : isDown
+                          ? throwHeight + 180
+                          : throwHeight * 0.24
+                      const midRotate = isLeft
+                        ? -8
+                        : isRight
+                          ? 8
+                          : activeThrow.startRotate * 0.35
+                      const exitRotate = isLeft ? -16 : isRight ? 16 : isDown ? 6 : -6
+
+                      animateConfig = {
+                        x: [activeThrow.startX, midX, exitX],
+                        y: [activeThrow.startY, midY, exitY],
+                        scale: 1,
+                        rotate: [activeThrow.startRotate, midRotate, exitRotate],
+                        rotateY: 0,
+                        opacity: 1,
+                      }
+                      transitionConfig = {
+                        duration: 0.28,
+                        ease: [0.2, 0.9, 0.25, 1],
+                        times: [0, 0.36, 1],
+                      }
+                    } else if (isTopCard) {
+                      animateConfig = {
+                        x: isTopCardFlipped ? -8 : 0,
+                        y: isTopCardFlipped ? -14 : 0,
+                        scale: 1,
+                        rotate: isTopCardFlipped ? -4 : 0,
+                        rotateY: isTopCardFlipped ? 180 : 0,
+                        opacity: 1,
+                      }
+                      transitionConfig = {
+                        duration: 0.34,
+                        ease: [0.22, 0.8, 0.32, 1],
+                      }
+                    }
+
+                    return (
+                      <motion.div
+                        key={`deck-swap-${item.name}`}
+                        className="absolute left-0 top-0 mt-[54px]"
+                        style={{
+                          zIndex: menuItems.length - depth,
+                        }}
+                        custom={{
+                          depth,
+                          direction: categoryDirection,
+                          visibleCount,
+                        }}
+                        variants={categoryCardPresenceVariants}
+                      >
+                        <MotionArticle
+                          className="relative max-w-full rounded-xl px-8 py-9 md:px-10 md:py-10"
+                          style={{
+                            backgroundColor: '#ffffff',
+                            boxShadow: '0 40px 40px -15px rgba(29, 28, 21, 0.06)',
+                            border: '3px solid #6b3f2a',
+                            width: `min(100%, ${textWidth + 260}px)`,
+                            pointerEvents: isTopCard ? 'auto' : 'none',
+                            transformStyle: 'preserve-3d',
+                            willChange: 'transform',
+                          }}
+                          drag={isTopCard && !activeThrow && !isTopCardFlipped}
+                          dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                          dragElastic={0.22}
+                          dragMomentum={false}
+                          onDragEnd={isTopCard ? handleDeckDragEnd : undefined}
+                          onPointerDown={isTopCard ? handleTopCardPointerDown : undefined}
+                          onPointerMove={isTopCard ? handleTopCardPointerMove : undefined}
+                          onPointerUp={isTopCard ? handleTopCardPointerRelease : undefined}
+                          onPointerCancel={
+                            isTopCard ? handleTopCardPointerRelease : undefined
                           }
-                        : undefined
-                    }
-                    onPointerLeave={
-                      isTopCard
-                        ? () => {
-                            isPointerOverTopCardRef.current = false
-                            wheelDeltaRef.current = 0
+                          onPointerEnter={
+                            isTopCard
+                              ? () => {
+                                  isPointerOverTopCardRef.current = true
+                                }
+                              : undefined
                           }
-                        : undefined
-                    }
-                    animate={animateConfig}
-                    transition={transitionConfig}
-                    onAnimationComplete={
-                      isTopCard && activeThrow ? completeDeckCycle : undefined
-                    }
-                  >
-                    <div className="relative h-full w-full [transform-style:preserve-3d]">
-                      <div className="[backface-visibility:hidden]">
-                        {renderCardBody(item, textWidth, measuredHeight)}
-                      </div>
-                      <div className="absolute inset-0 flex items-center justify-center rounded-[inherit] bg-[#fffdf9] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                        <img
-                          src={backImage}
-                          alt={`${item.name} menu image`}
-                          className="h-full w-full object-contain"
-                          draggable={false}
-                        />
-                      </div>
-                    </div>
-                  </MotionArticle>
-                )
-              })}
+                          onPointerLeave={
+                            isTopCard
+                              ? () => {
+                                  isPointerOverTopCardRef.current = false
+                                  wheelDeltaRef.current = 0
+                                }
+                              : undefined
+                          }
+                          animate={animateConfig}
+                          transition={transitionConfig}
+                          onAnimationComplete={
+                            isTopCard && activeThrow ? completeDeckCycle : undefined
+                          }
+                        >
+                          <div className="relative h-full w-full [transform-style:preserve-3d]">
+                            <div className="[backface-visibility:hidden]">
+                              {renderCardBody(item, textWidth, measuredHeight)}
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center rounded-[inherit] bg-[#fffdf9] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                              <img
+                                src={backImage}
+                                alt={`${item.name} menu image`}
+                                className="h-full w-full object-contain"
+                                draggable={false}
+                              />
+                            </div>
+                          </div>
+                        </MotionArticle>
+                      </motion.div>
+                    )
+                  })}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
 

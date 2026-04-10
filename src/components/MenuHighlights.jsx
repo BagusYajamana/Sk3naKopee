@@ -1,10 +1,7 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
-import espressoImage from '../assets/images/espresso.webp'
-import pourOverImage from '../assets/images/pour-over.webp'
-import kopiSusuGulaArenImage from '../assets/images/kopi-susu-gula-aren.webp'
-import skenaNightBloomImage from '../assets/images/skena-night-bloom.webp'
+import menuCategories from '../data/menuItems'
 
 const DECK_VISIBLE_DEPTH = 3
 const SWIPE_DISTANCE_THRESHOLD = 70
@@ -25,6 +22,10 @@ const CATEGORY_DECK_EXIT_TRANSITION = {
   duration: 0.24,
   ease: [0.3, 0.86, 0.36, 1],
 }
+const RECOMMENDED_BADGE_TRANSITION = {
+  duration: 0.24,
+  ease: [0.22, 0.8, 0.28, 1],
+}
 const FAN_TRANSITION = {
   duration: 0.34,
   ease: [0.22, 0.68, 0.24, 1],
@@ -42,13 +43,6 @@ const CATEGORY_DECK_LAYER_VARIANTS = {
       when: 'afterChildren',
     },
   },
-}
-const menuImageByName = {
-  Espresso: espressoImage,
-  'Pour Over': pourOverImage,
-  'Kopi Susu Aren': kopiSusuGulaArenImage,
-  'Kopi Susu Gula Aren': kopiSusuGulaArenImage,
-  'Skena Night Bloom': skenaNightBloomImage,
 }
 
 function clamp(value, min, max) {
@@ -143,56 +137,35 @@ function getCategoryCardPresenceVariants() {
   }
 }
 
-function MenuHighlights() {
-  const categories = useMemo(
-    () => [
-      {
-        label: 'Drinks',
-        items: [
-          {
-            name: 'Espresso',
-            price: '30k',
-            profile: 'Bold / Dark Chocolate / Citrus',
-            description:
-              'Pulled short and intentional with a dense crema. The cup opens with dark cocoa and finishes with a clean citrus lift.',
-            label: 'House Classic',
-          },
-          {
-            name: 'Pour Over',
-            price: '42k',
-            profile: 'Floral / Tea-like / Bright',
-            description:
-              'Single-origin selection brewed by hand using a controlled spiral pour, revealing delicate aromatics and a crisp finish.',
-            label: 'Manual Brew',
-          },
-          {
-            name: 'Kopi Susu Aren',
-            price: '38k',
-            profile: 'Palm Sugar / Creamy / Roasted',
-            description:
-              'Skena signature blend with West Javanese aren sugar and fresh milk, balancing sweetness and deep roasted character.',
-            label: 'Bandung Favorite',
-          },
-          {
-            name: 'Skena Night Bloom',
-            price: '45k',
-            profile: 'Berry / Spice / Velvet',
-            description:
-              'A rotating seasonal creation built from anaerobic micro-lots, steamed milk, and a subtle clove-orange finish.',
-            label: 'Signature Series',
-          },
-        ],
-      },
-    ],
-    [],
-  )
+function getLocalDateKey(date) {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
+function getDateSeed(dateKey) {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return Math.floor(Date.UTC(year, month - 1, day) / 86400000)
+}
+
+function hashLabel(label) {
+  let hash = 0
+  for (let index = 0; index < label.length; index += 1) {
+    hash = (hash * 31 + label.charCodeAt(index)) >>> 0
+  }
+  return hash
+}
+
+function MenuHighlights() {
   const [categoryIndex, setCategoryIndex] = useState(0)
   const [categoryDirection, setCategoryDirection] = useState('right')
   const [categoryMotionKey, setCategoryMotionKey] = useState(0)
-  const selectedCategory = categories[categoryIndex] ?? categories[0]
+  const [todayKey, setTodayKey] = useState(() => getLocalDateKey(new Date()))
+  const selectedCategory = menuCategories[categoryIndex] ?? menuCategories[0]
   const menuItems = selectedCategory?.items ?? []
   const categoryLabel = selectedCategory?.label ?? ''
+  const categoryId = selectedCategory?.id ?? ''
   const layouts = useMenuHighlightLayout(menuItems)
   const MotionArticle = motion.article
   const categoryCardPresenceVariants = useMemo(
@@ -222,6 +195,24 @@ function MenuHighlights() {
     width: 0,
     height: 0,
   }))
+  const activeDeckOrder = useMemo(() => {
+    if (
+      deckOrder.length !== menuItems.length ||
+      deckOrder.some((itemIndex) => itemIndex < 0 || itemIndex >= menuItems.length)
+    ) {
+      return menuItems.map((_, index) => index)
+    }
+
+    return deckOrder
+  }, [deckOrder, menuItems])
+  const dateSeed = useMemo(() => getDateSeed(todayKey), [todayKey])
+  const recommendedIndex = useMemo(() => {
+    if (menuItems.length === 0) {
+      return -1
+    }
+
+    return (dateSeed + hashLabel(categoryId)) % menuItems.length
+  }, [categoryId, dateSeed, menuItems.length])
 
   const cycleCategory = useCallback(
     (direction) => {
@@ -229,11 +220,31 @@ function MenuHighlights() {
       setCategoryMotionKey((current) => current + 1)
       setCategoryIndex((current) => {
         const step = direction === 'left' ? -1 : 1
-        return (current + step + categories.length) % categories.length
+        return (current + step + menuCategories.length) % menuCategories.length
       })
     },
-    [categories.length],
+    [],
   )
+
+  useEffect(() => {
+    const now = new Date()
+    const nextMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+      0,
+      0,
+      1,
+    )
+
+    const timer = window.setTimeout(() => {
+      setTodayKey(getLocalDateKey(new Date()))
+    }, nextMidnight.getTime() - now.getTime())
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [todayKey])
 
   useLayoutEffect(() => {
     setDeckOrder(menuItems.map((_, index) => index))
@@ -288,9 +299,25 @@ function MenuHighlights() {
     }
   }, [])
 
-  const renderCardBody = useCallback((item, textWidth, measuredHeight) => {
+  const renderCardBody = useCallback((item, textWidth, measuredHeight, showRecommendedBadge) => {
     return (
-      <>
+      <div className="relative">
+        <AnimatePresence>
+          {showRecommendedBadge ? (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.92, rotate: -4 }}
+              animate={{ opacity: 1, y: 0, scale: 1, rotate: -2 }}
+              exit={{ opacity: 0, y: -10, scale: 0.94, rotate: -6 }}
+              transition={RECOMMENDED_BADGE_TRANSITION}
+              className="pointer-events-none absolute right-0 top-0 z-10"
+            >
+              <span className="inline-flex border border-[color:color-mix(in_srgb,#a65d2f_22%,transparent)] bg-[color:color-mix(in_srgb,#e8b47b_56%,#fff4df_44%)] px-4 py-2 font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.1em] text-[#7a4422] uppercase shadow-[0_10px_18px_rgba(122,68,34,0.12)] [border-radius:58%_42%_55%_45%/48%_58%_42%_52%]">
+                Recommended Today
+              </span>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
         <span className="mb-2 block font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.2em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
           {item.label}
         </span>
@@ -318,7 +345,7 @@ function MenuHighlights() {
             </p>
           </div>
         </div>
-      </>
+      </div>
     )
   }, [])
 
@@ -485,12 +512,12 @@ function MenuHighlights() {
     [clearHoldFlipTimer, isTopCardFlipped, queueFlipBack],
   )
 
-  const topIndex = deckOrder[0] ?? 0
+  const topIndex = activeDeckOrder[0] ?? 0
   const topLayout = layouts[topIndex]
   const deckHeight =
     Math.max((topLayout?.height ?? 120) + 265, 380) + DECK_CARD_TOP_OFFSET
   const topItem = menuItems[topIndex]
-  const topMenuImage = menuImageByName[topItem?.name] ?? espressoImage
+  const topMenuImage = topItem?.image
 
   return (
     <section
@@ -601,10 +628,10 @@ function MenuHighlights() {
                   animate="center"
                   exit="exit"
                 >
-                  {deckOrder.map((itemIndex, depth) => {
+                  {activeDeckOrder.map((itemIndex, depth) => {
                     const item = menuItems[itemIndex]
                     const layout = layouts[itemIndex]
-                    const backImage = menuImageByName[item.name] ?? espressoImage
+                    const backImage = item.image
                     const textWidth = layout?.width ?? 360
                     const measuredHeight = layout?.height ?? 120
                     const isTopCard = depth === 0
@@ -621,6 +648,8 @@ function MenuHighlights() {
                     const throwWidth = deckBounds.width || 480
                     const throwHeight = deckBounds.height || 420
                     const visibleCount = Math.min(menuItems.length, DECK_VISIBLE_DEPTH)
+                    const showRecommendedBadge =
+                      isTopCard && itemIndex === recommendedIndex
 
                     let animateConfig = {
                       x: isDeckFanned ? fanOffset.x : 0,
@@ -744,7 +773,12 @@ function MenuHighlights() {
                         >
                           <div className="relative h-full w-full [transform-style:preserve-3d]">
                             <div className="[backface-visibility:hidden]">
-                              {renderCardBody(item, textWidth, measuredHeight)}
+                              {renderCardBody(
+                                item,
+                                textWidth,
+                                measuredHeight,
+                                showRecommendedBadge,
+                              )}
                             </div>
                             <div className="absolute inset-0 flex items-center justify-center rounded-[inherit] bg-[#fffdf9] [backface-visibility:hidden] [transform:rotateY(180deg)]">
                               <img

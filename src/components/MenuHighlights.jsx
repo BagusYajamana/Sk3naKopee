@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import CategoryToggleRail from './CategoryToggleRail'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
 import menuCategories from '../data/menuItems'
 
@@ -10,11 +11,6 @@ const DECK_CARD_TOP_OFFSET = 64
 const HOLD_TO_FLIP_MS = 340
 const HOLD_MOVE_THRESHOLD_PX = 4
 const FLIP_RETURN_DELAY_MS = 500
-const CATEGORY_SWIPE_THRESHOLD = 44
-const CATEGORY_WORD_TRANSITION = {
-  duration: 0.22,
-  ease: [0.2, 0.8, 0.2, 1],
-}
 const CATEGORY_DECK_ENTER_TRANSITION = {
   duration: 0.32,
   ease: [0.2, 0.82, 0.24, 1],
@@ -165,7 +161,6 @@ function MenuHighlights() {
   const [todayKey, setTodayKey] = useState(() => getLocalDateKey(new Date()))
   const selectedCategory = menuCategories[categoryIndex] ?? menuCategories[0]
   const menuItems = selectedCategory?.items ?? []
-  const categoryLabel = selectedCategory?.label ?? ''
   const categoryId = selectedCategory?.id ?? ''
   const layouts = useMenuHighlightLayout(menuItems)
   const MotionArticle = motion.article
@@ -179,7 +174,6 @@ function MenuHighlights() {
   const cycleLockRef = useRef(false)
   const holdFlipTimerRef = useRef(null)
   const flipReturnTimerRef = useRef(null)
-  const categorySwipeStartRef = useRef({ x: 0, y: 0 })
   const holdPointerRef = useRef({
     active: false,
     pointerId: null,
@@ -235,50 +229,32 @@ function MenuHighlights() {
     return (dateSeed + hashLabel(categoryId)) % menuItems.length
   }, [categoryId, dateSeed, menuItems.length])
 
-  const cycleCategory = useCallback(
-    (direction) => {
-      setCategoryDirection(direction)
+  const selectCategory = useCallback(
+    (targetIndex) => {
+      if (targetIndex === categoryIndex) {
+        return
+      }
+
+      const forwardDistance =
+        (targetIndex - categoryIndex + menuCategories.length) % menuCategories.length
+      const backwardDistance =
+        (categoryIndex - targetIndex + menuCategories.length) % menuCategories.length
+
+      setCategoryDirection(forwardDistance <= backwardDistance ? 'right' : 'left')
       setCategoryMotionKey((current) => current + 1)
-      setCategoryIndex((current) => {
-        const step = direction === 'left' ? -1 : 1
-        return (current + step + menuCategories.length) % menuCategories.length
-      })
+      setCategoryIndex(targetIndex)
     },
-    [],
+    [categoryIndex],
   )
 
-  const handleCategorySwipeStart = useCallback((event) => {
-    const touch = event.touches?.[0]
-    if (!touch) {
-      return
-    }
-
-    categorySwipeStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-    }
+  const cycleCategory = useCallback((direction) => {
+    setCategoryDirection(direction)
+    setCategoryMotionKey((current) => current + 1)
+    setCategoryIndex((current) => {
+      const step = direction === 'left' ? -1 : 1
+      return (current + step + menuCategories.length) % menuCategories.length
+    })
   }, [])
-
-  const handleCategorySwipeEnd = useCallback(
-    (event) => {
-      const touch = event.changedTouches?.[0]
-      if (!touch) {
-        return
-      }
-
-      const deltaX = touch.clientX - categorySwipeStartRef.current.x
-      const deltaY = touch.clientY - categorySwipeStartRef.current.y
-      if (
-        Math.abs(deltaX) < CATEGORY_SWIPE_THRESHOLD ||
-        Math.abs(deltaX) <= Math.abs(deltaY)
-      ) {
-        return
-      }
-
-      cycleCategory(deltaX > 0 ? 'left' : 'right')
-    },
-    [cycleCategory],
-  )
 
   useEffect(() => {
     const now = new Date()
@@ -594,83 +570,6 @@ function MenuHighlights() {
     Math.max(cardLayoutMetrics.measuredHeight + 265, 380) + DECK_CARD_TOP_OFFSET
   const topItem = menuItems[topIndex]
   const topMenuImage = topItem?.image
-  const renderCategoryToggle = (isMobile = false) => (
-    <div
-      className={`flex items-center justify-center gap-3${isMobile ? ' mx-auto mt-8 w-fit touch-pan-y' : ''}`}
-      onTouchStart={isMobile ? handleCategorySwipeStart : undefined}
-      onTouchEnd={isMobile ? handleCategorySwipeEnd : undefined}
-    >
-      <button
-        type="button"
-        aria-label="Previous category"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
-        onClick={() => cycleCategory('left')}
-      >
-        <svg
-          viewBox="0 0 16 16"
-          aria-hidden="true"
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M9.5 3.5 5 8l4.5 4.5" />
-        </svg>
-      </button>
-
-      <div className="relative flex h-9 min-w-[8ch] items-center justify-center overflow-hidden">
-        <AnimatePresence initial={false} mode="wait" custom={categoryDirection}>
-          <motion.span
-            key={`${categoryLabel}-${categoryMotionKey}-${isMobile ? 'mobile' : 'desktop'}`}
-            custom={categoryDirection}
-            variants={{
-              enter: (direction) => ({
-                x: direction === 'left' ? 18 : -18,
-                opacity: 0,
-              }),
-              center: {
-                x: 0,
-                opacity: 1,
-              },
-              exit: (direction) => ({
-                x: direction === 'left' ? -18 : 18,
-                opacity: 0,
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={CATEGORY_WORD_TRANSITION}
-            className="absolute inset-0 flex items-center justify-center whitespace-nowrap font-['Plus_Jakarta_Sans'] text-[11px] font-bold tracking-[0.1em] text-[color:color-mix(in_srgb,var(--on_surface)_72%,#4f453f_28%)] uppercase"
-          >
-            {categoryLabel}
-          </motion.span>
-        </AnimatePresence>
-      </div>
-
-      <button
-        type="button"
-        aria-label="Next category"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
-        onClick={() => cycleCategory('right')}
-      >
-        <svg
-          viewBox="0 0 16 16"
-          aria-hidden="true"
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M6.5 3.5 11 8l-4.5 4.5" />
-        </svg>
-      </button>
-    </div>
-  )
 
   return (
     <section
@@ -679,18 +578,10 @@ function MenuHighlights() {
       style={{ backgroundColor: '#f9f3e8' }}
     >
       <div className="mx-auto max-w-7xl">
-        <div className="mb-12 flex items-end justify-between">
-          <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-end">
-            <h2 className="text-center font-['Newsreader'] text-4xl italic text-[var(--primary)] md:text-left md:text-5xl">
-              Today&apos;s Selection
-            </h2>
-
-            <div className="hidden md:flex md:justify-center md:pb-2">
-              {renderCategoryToggle()}
-            </div>
-
-            <div className="hidden md:block" />
-          </div>
+        <div className="mb-12">
+          <h2 className="text-center font-['Newsreader'] text-4xl italic text-[var(--primary)] md:text-left md:text-5xl">
+            Today&apos;s Selection
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center xl:grid-cols-[minmax(0,1fr)_500px]">
@@ -878,9 +769,6 @@ function MenuHighlights() {
                 </motion.div>
               </AnimatePresence>
             </div>
-            <div className="md:hidden">
-              {renderCategoryToggle(true)}
-            </div>
           </div>
 
           <div className="relative hidden h-[min(72vh,620px)] lg:block">
@@ -913,6 +801,13 @@ function MenuHighlights() {
             </div>
           </div>
         </div>
+
+        <CategoryToggleRail
+          categories={menuCategories}
+          activeIndex={categoryIndex}
+          onSelectCategory={selectCategory}
+          onCycleCategory={cycleCategory}
+        />
       </div>
     </section>
   )

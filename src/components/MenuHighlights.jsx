@@ -347,8 +347,13 @@ function MenuHighlights() {
                     opacity="0.6"
                   />
                 </svg>
-                <span className="relative z-10 whitespace-nowrap">
-                  Recommended Today
+                <span className="relative z-10 flex flex-col items-center justify-center font-['Newsreader'] italic leading-none text-white/90 [filter:blur(0.4px)]">
+                  <span className="block rotate-[7deg] whitespace-nowrap tracking-[0.04em]">
+                    Recommended
+                  </span>
+                  <span className="mt-1 block rotate-[4deg] whitespace-nowrap tracking-[0.04em]">
+                    Today
+                  </span>
                 </span>
               </span>
             </motion.div>

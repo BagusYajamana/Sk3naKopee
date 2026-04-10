@@ -10,6 +10,7 @@ const DECK_CARD_TOP_OFFSET = 64
 const HOLD_TO_FLIP_MS = 340
 const HOLD_MOVE_THRESHOLD_PX = 4
 const FLIP_RETURN_DELAY_MS = 500
+const CATEGORY_SWIPE_THRESHOLD = 44
 const CATEGORY_WORD_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0.8, 0.2, 1],
@@ -178,6 +179,7 @@ function MenuHighlights() {
   const cycleLockRef = useRef(false)
   const holdFlipTimerRef = useRef(null)
   const flipReturnTimerRef = useRef(null)
+  const categorySwipeStartRef = useRef({ x: 0, y: 0 })
   const holdPointerRef = useRef({
     active: false,
     pointerId: null,
@@ -243,6 +245,39 @@ function MenuHighlights() {
       })
     },
     [],
+  )
+
+  const handleCategorySwipeStart = useCallback((event) => {
+    const touch = event.touches?.[0]
+    if (!touch) {
+      return
+    }
+
+    categorySwipeStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    }
+  }, [])
+
+  const handleCategorySwipeEnd = useCallback(
+    (event) => {
+      const touch = event.changedTouches?.[0]
+      if (!touch) {
+        return
+      }
+
+      const deltaX = touch.clientX - categorySwipeStartRef.current.x
+      const deltaY = touch.clientY - categorySwipeStartRef.current.y
+      if (
+        Math.abs(deltaX) < CATEGORY_SWIPE_THRESHOLD ||
+        Math.abs(deltaX) <= Math.abs(deltaY)
+      ) {
+        return
+      }
+
+      cycleCategory(deltaX > 0 ? 'left' : 'right')
+    },
+    [cycleCategory],
   )
 
   useEffect(() => {
@@ -559,6 +594,83 @@ function MenuHighlights() {
     Math.max(cardLayoutMetrics.measuredHeight + 265, 380) + DECK_CARD_TOP_OFFSET
   const topItem = menuItems[topIndex]
   const topMenuImage = topItem?.image
+  const renderCategoryToggle = (isMobile = false) => (
+    <div
+      className={`flex items-center justify-center gap-3${isMobile ? ' mx-auto mt-8 w-fit touch-pan-y' : ''}`}
+      onTouchStart={isMobile ? handleCategorySwipeStart : undefined}
+      onTouchEnd={isMobile ? handleCategorySwipeEnd : undefined}
+    >
+      <button
+        type="button"
+        aria-label="Previous category"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
+        onClick={() => cycleCategory('left')}
+      >
+        <svg
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9.5 3.5 5 8l4.5 4.5" />
+        </svg>
+      </button>
+
+      <div className="relative flex h-9 min-w-[8ch] items-center justify-center overflow-hidden">
+        <AnimatePresence initial={false} mode="wait" custom={categoryDirection}>
+          <motion.span
+            key={`${categoryLabel}-${categoryMotionKey}-${isMobile ? 'mobile' : 'desktop'}`}
+            custom={categoryDirection}
+            variants={{
+              enter: (direction) => ({
+                x: direction === 'left' ? 18 : -18,
+                opacity: 0,
+              }),
+              center: {
+                x: 0,
+                opacity: 1,
+              },
+              exit: (direction) => ({
+                x: direction === 'left' ? -18 : 18,
+                opacity: 0,
+              }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={CATEGORY_WORD_TRANSITION}
+            className="absolute inset-0 flex items-center justify-center whitespace-nowrap font-['Plus_Jakarta_Sans'] text-[11px] font-bold tracking-[0.1em] text-[color:color-mix(in_srgb,var(--on_surface)_72%,#4f453f_28%)] uppercase"
+          >
+            {categoryLabel}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+
+      <button
+        type="button"
+        aria-label="Next category"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
+        onClick={() => cycleCategory('right')}
+      >
+        <svg
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6.5 3.5 11 8l-4.5 4.5" />
+        </svg>
+      </button>
+    </div>
+  )
 
   return (
     <section
@@ -573,81 +685,11 @@ function MenuHighlights() {
               Today&apos;s Selection
             </h2>
 
-            <div className="flex items-center justify-center gap-3 md:pb-2">
-              <button
-                type="button"
-                aria-label="Previous category"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
-                onClick={() => cycleCategory('left')}
-              >
-                <svg
-                  viewBox="0 0 16 16"
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M9.5 3.5 5 8l4.5 4.5" />
-                </svg>
-              </button>
-
-              <div className="relative flex h-9 min-w-[8ch] items-center justify-center overflow-hidden">
-                <AnimatePresence initial={false} mode="wait" custom={categoryDirection}>
-                  <motion.span
-                    key={`${categoryLabel}-${categoryMotionKey}`}
-                    custom={categoryDirection}
-                    variants={{
-                      enter: (direction) => ({
-                        x: direction === 'left' ? 18 : -18,
-                        opacity: 0,
-                      }),
-                      center: {
-                        x: 0,
-                        opacity: 1,
-                      },
-                      exit: (direction) => ({
-                        x: direction === 'left' ? -18 : 18,
-                        opacity: 0,
-                      }),
-                    }}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={CATEGORY_WORD_TRANSITION}
-                    className="absolute inset-0 flex items-center justify-center whitespace-nowrap font-['Plus_Jakarta_Sans'] text-[11px] font-bold tracking-[0.1em] text-[color:color-mix(in_srgb,var(--on_surface)_72%,#4f453f_28%)] uppercase"
-                  >
-                    {categoryLabel}
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-
-              <button
-                type="button"
-                aria-label="Next category"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
-                onClick={() => cycleCategory('right')}
-              >
-                <svg
-                  viewBox="0 0 16 16"
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M6.5 3.5 11 8l-4.5 4.5" />
-                </svg>
-              </button>
+            <div className="hidden md:flex md:justify-center md:pb-2">
+              {renderCategoryToggle()}
             </div>
 
-            <span className="text-center font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.18em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase md:text-right">
-              Volume 04
-            </span>
+            <div className="hidden md:block" />
           </div>
         </div>
 
@@ -835,6 +877,9 @@ function MenuHighlights() {
                   })}
                 </motion.div>
               </AnimatePresence>
+            </div>
+            <div className="md:hidden">
+              {renderCategoryToggle(true)}
             </div>
           </div>
 

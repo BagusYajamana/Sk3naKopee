@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
 import espressoImage from '../assets/images/espresso.webp'
 import pourOverImage from '../assets/images/pour-over.webp'
@@ -13,6 +13,10 @@ const DECK_CARD_TOP_OFFSET = 64
 const HOLD_TO_FLIP_MS = 340
 const HOLD_MOVE_THRESHOLD_PX = 4
 const FLIP_RETURN_DELAY_MS = 500
+const CATEGORY_WORD_TRANSITION = {
+  duration: 0.22,
+  ease: [0.2, 0.8, 0.2, 1],
+}
 const menuImageByName = {
   Espresso: espressoImage,
   'Pour Over': pourOverImage,
@@ -47,44 +51,55 @@ function getSwipeDirection(offset, velocity) {
 }
 
 function MenuHighlights() {
-  const menuItems = useMemo(
+  const categories = useMemo(
     () => [
       {
-        name: 'Espresso',
-        price: '30k',
-        profile: 'Bold / Dark Chocolate / Citrus',
-        description:
-          'Pulled short and intentional with a dense crema. The cup opens with dark cocoa and finishes with a clean citrus lift.',
-        label: 'House Classic',
-      },
-      {
-        name: 'Pour Over',
-        price: '42k',
-        profile: 'Floral / Tea-like / Bright',
-        description:
-          'Single-origin selection brewed by hand using a controlled spiral pour, revealing delicate aromatics and a crisp finish.',
-        label: 'Manual Brew',
-      },
-      {
-        name: 'Kopi Susu Aren',
-        price: '38k',
-        profile: 'Palm Sugar / Creamy / Roasted',
-        description:
-          'Skena signature blend with West Javanese aren sugar and fresh milk, balancing sweetness and deep roasted character.',
-        label: 'Bandung Favorite',
-      },
-      {
-        name: 'Skena Night Bloom',
-        price: '45k',
-        profile: 'Berry / Spice / Velvet',
-        description:
-          'A rotating seasonal creation built from anaerobic micro-lots, steamed milk, and a subtle clove-orange finish.',
-        label: 'Signature Series',
+        label: 'Drinks',
+        items: [
+          {
+            name: 'Espresso',
+            price: '30k',
+            profile: 'Bold / Dark Chocolate / Citrus',
+            description:
+              'Pulled short and intentional with a dense crema. The cup opens with dark cocoa and finishes with a clean citrus lift.',
+            label: 'House Classic',
+          },
+          {
+            name: 'Pour Over',
+            price: '42k',
+            profile: 'Floral / Tea-like / Bright',
+            description:
+              'Single-origin selection brewed by hand using a controlled spiral pour, revealing delicate aromatics and a crisp finish.',
+            label: 'Manual Brew',
+          },
+          {
+            name: 'Kopi Susu Aren',
+            price: '38k',
+            profile: 'Palm Sugar / Creamy / Roasted',
+            description:
+              'Skena signature blend with West Javanese aren sugar and fresh milk, balancing sweetness and deep roasted character.',
+            label: 'Bandung Favorite',
+          },
+          {
+            name: 'Skena Night Bloom',
+            price: '45k',
+            profile: 'Berry / Spice / Velvet',
+            description:
+              'A rotating seasonal creation built from anaerobic micro-lots, steamed milk, and a subtle clove-orange finish.',
+            label: 'Signature Series',
+          },
+        ],
       },
     ],
     [],
   )
 
+  const [categoryIndex, setCategoryIndex] = useState(0)
+  const [categoryDirection, setCategoryDirection] = useState('right')
+  const [categoryMotionKey, setCategoryMotionKey] = useState(0)
+  const selectedCategory = categories[categoryIndex] ?? categories[0]
+  const menuItems = selectedCategory?.items ?? []
+  const categoryLabel = selectedCategory?.label ?? ''
   const layouts = useMenuHighlightLayout(menuItems)
   const MotionArticle = motion.article
   const deckRef = useRef(null)
@@ -109,6 +124,18 @@ function MenuHighlights() {
     width: 0,
     height: 0,
   }))
+
+  const cycleCategory = useCallback(
+    (direction) => {
+      setCategoryDirection(direction)
+      setCategoryMotionKey((current) => current + 1)
+      setCategoryIndex((current) => {
+        const step = direction === 'left' ? -1 : 1
+        return (current + step + categories.length) % categories.length
+      })
+    },
+    [categories.length],
+  )
 
   useLayoutEffect(() => {
     setDeckOrder(menuItems.map((_, index) => index))
@@ -375,12 +402,87 @@ function MenuHighlights() {
     >
       <div className="mx-auto max-w-7xl">
         <div className="mb-12 flex items-end justify-between">
-          <h2 className="font-['Newsreader'] text-4xl italic text-[var(--primary)] md:text-5xl">
-            Today&apos;s Selection
-          </h2>
-          <span className="font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.18em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
-            Volume 04
-          </span>
+          <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-end">
+            <h2 className="text-center font-['Newsreader'] text-4xl italic text-[var(--primary)] md:text-left md:text-5xl">
+              Today&apos;s Selection
+            </h2>
+
+            <div className="flex items-center justify-center gap-3 md:pb-2">
+              <button
+                type="button"
+                aria-label="Previous category"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
+                onClick={() => cycleCategory('left')}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9.5 3.5 5 8l4.5 4.5" />
+                </svg>
+              </button>
+
+              <div className="relative flex h-9 min-w-[8ch] items-center justify-center overflow-hidden">
+                <AnimatePresence initial={false} mode="wait" custom={categoryDirection}>
+                  <motion.span
+                    key={`${categoryLabel}-${categoryMotionKey}`}
+                    custom={categoryDirection}
+                    variants={{
+                      enter: (direction) => ({
+                        x: direction === 'left' ? 18 : -18,
+                        opacity: 0,
+                      }),
+                      center: {
+                        x: 0,
+                        opacity: 1,
+                      },
+                      exit: (direction) => ({
+                        x: direction === 'left' ? -18 : 18,
+                        opacity: 0,
+                      }),
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={CATEGORY_WORD_TRANSITION}
+                    className="absolute inset-0 flex items-center justify-center whitespace-nowrap font-['Plus_Jakarta_Sans'] text-[11px] font-bold tracking-[0.1em] text-[color:color-mix(in_srgb,var(--on_surface)_72%,#4f453f_28%)] uppercase"
+                  >
+                    {categoryLabel}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+
+              <button
+                type="button"
+                aria-label="Next category"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--primary)_16%,transparent)] text-[var(--primary)] transition-colors duration-200 hover:border-[color:color-mix(in_srgb,var(--primary)_28%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]"
+                onClick={() => cycleCategory('right')}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6.5 3.5 11 8l-4.5 4.5" />
+                </svg>
+              </button>
+            </div>
+
+            <span className="text-center font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.18em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase md:text-right">
+              Volume 04
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center xl:grid-cols-[minmax(0,1fr)_500px]">

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import CategoryToggleRail from './CategoryToggleRail'
+import MenuCardFace from './MenuCardFace'
+import MenuPreviewImage from './MenuPreviewImage'
 import { useMenuHighlightLayout } from '../hooks/useMenuHighlightLayout'
 import menuCategories from '../data/menuItems'
 
@@ -18,10 +20,6 @@ const CATEGORY_DECK_ENTER_TRANSITION = {
 const CATEGORY_DECK_EXIT_TRANSITION = {
   duration: 0.24,
   ease: [0.3, 0.86, 0.36, 1],
-}
-const RECOMMENDED_BADGE_TRANSITION = {
-  duration: 0.24,
-  ease: [0.22, 0.8, 0.28, 1],
 }
 const FAN_TRANSITION = {
   duration: 0.34,
@@ -327,79 +325,6 @@ function MenuHighlights() {
       resizeObserver.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [])
-
-  const renderCardBody = useCallback((item, textWidth, measuredHeight, showRecommendedBadge) => {
-    return (
-      <div className="relative">
-        <AnimatePresence>
-          {showRecommendedBadge ? (
-            <motion.div
-              initial={{ opacity: 0, y: -8, scale: 0.92, rotate: -4 }}
-              animate={{ opacity: 1, y: 0, scale: 1, rotate: -2 }}
-              exit={{ opacity: 0, y: -10, scale: 0.94, rotate: -6 }}
-              transition={RECOMMENDED_BADGE_TRANSITION}
-              className="pointer-events-none absolute right-0 top-0 z-10"
-            >
-              <span className="relative inline-flex min-w-[10.5rem] items-center justify-center px-5 py-4 font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.1em] text-white uppercase drop-shadow-[0_8px_14px_rgba(111,60,32,0.22)]">
-                <svg
-                  viewBox="0 0 220 140"
-                  aria-hidden="true"
-                  className="absolute inset-0 h-full w-full overflow-visible"
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d="M109 7c9 3 15 10 24 11 10 0 18-5 27-1 8 5 11 14 18 20 8 6 19 8 22 18 2 10-3 19-2 28 2 9 9 18 6 28-4 9-15 13-22 19-6 7-8 17-17 22-9 3-19-1-28 1-9 3-16 10-26 11-10-1-17-9-26-11-10-2-20 2-29-2-8-5-10-15-17-22-8-5-18-9-21-19-3-9 3-18 4-27 1-10-4-20-1-30 4-9 15-12 22-18 6-7 9-16 17-21 9-4 18 0 27 0 9-2 14-8 22-10Z"
-                    fill="#bf6542"
-                  />
-                  <path
-                    d="M108 18c7 3 12 9 19 10 8 1 15-4 22-1 6 4 8 11 14 15 6 4 15 6 18 14 2 8-3 15-2 22 1 8 7 15 5 23-3 7-11 10-16 15-5 5-7 14-14 17-7 3-15-1-22 1-7 2-13 9-22 9-8 0-14-7-21-9-8-2-16 2-23-1-7-4-9-12-14-17-6-5-14-7-17-15-2-7 2-15 3-22 1-8-4-16-2-24 3-7 11-10 17-14 5-5 7-12 14-16 7-3 15 1 22 0 7-1 12-7 19-9Z"
-                    fill="#a94f46"
-                    opacity="0.6"
-                  />
-                </svg>
-                <span className="relative z-10 flex flex-col items-center justify-center font-['Newsreader'] italic leading-none text-white/90 [filter:blur(0.4px)]">
-                  <span className="block rotate-[7deg] whitespace-nowrap tracking-[0.04em]">
-                    Recommended
-                  </span>
-                  <span className="mt-1 block rotate-[4deg] whitespace-nowrap tracking-[0.04em]">
-                    Today
-                  </span>
-                </span>
-              </span>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-
-        <span className="mb-2 block font-['Plus_Jakarta_Sans'] text-[10px] font-bold tracking-[0.2em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
-          {item.label}
-        </span>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr] md:items-start md:gap-8">
-          <div className="md:pt-1">
-            <p className="font-['Newsreader'] text-5xl italic text-[var(--primary)]">
-              {item.price}
-            </p>
-          </div>
-          <div>
-            <h3 className="mb-3 font-['Newsreader'] text-4xl italic text-[var(--primary)] md:text-5xl">
-              {item.name}
-            </h3>
-            <p className="mb-4 font-['Plus_Jakarta_Sans'] text-xs font-bold tracking-[0.14em] text-[color:color-mix(in_srgb,var(--on_surface)_58%,#4f453f_42%)] uppercase">
-              {item.profile}
-            </p>
-            <p
-              className="font-['Plus_Jakarta_Sans'] text-base leading-[1.65] text-[color:color-mix(in_srgb,var(--on_surface)_70%,#4f453f_30%)]"
-              style={{
-                width: `min(100%, ${textWidth}px)`,
-                minHeight: `${measuredHeight}px`,
-              }}
-            >
-              {item.description}
-            </p>
-          </div>
-        </div>
-      </div>
-    )
   }, [])
 
   const startDeckCycle = useCallback(
@@ -746,12 +671,12 @@ function MenuHighlights() {
                         >
                           <div className="relative h-full w-full [transform-style:preserve-3d]">
                             <div className="[backface-visibility:hidden]">
-                              {renderCardBody(
-                                item,
-                                textWidth,
-                                measuredHeight,
-                                showRecommendedBadge,
-                              )}
+                              <MenuCardFace
+                                item={item}
+                                textWidth={textWidth}
+                                measuredHeight={measuredHeight}
+                                showRecommendedBadge={showRecommendedBadge}
+                              />
                             </div>
                             <div className="absolute inset-0 flex items-center justify-center rounded-[inherit] bg-[#fffdf9] [backface-visibility:hidden] [transform:rotateY(180deg)]">
                               <img
@@ -778,25 +703,7 @@ function MenuHighlights() {
                   <div className="absolute left-1/2 top-1/2 h-[132%] w-[132%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(247,220,182,0.4)_0%,rgba(247,220,182,0.14)_36%,rgba(247,220,182,0)_74%)] blur-2xl" />
                   <div className="absolute left-[56%] top-[40%] h-[88%] w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,246,230,0.68)_0%,rgba(255,246,230,0.22)_40%,rgba(255,246,230,0)_78%)] blur-xl" />
                 </div>
-                <motion.img
-                  key={topItem?.name}
-                  src={topMenuImage}
-                  alt={topItem ? `${topItem.name} menu item` : 'Menu item'}
-                  className="relative z-10 h-full w-full object-contain drop-shadow-[0_30px_34px_rgba(43,29,16,0.2)]"
-                  initial={{ opacity: 0, scale: 0.9, rotate: -1.7, x: 0, y: 6 }}
-                  animate={{
-                    opacity: [0, 1, 1, 1, 1],
-                    scale: [0.9, 1.06, 0.99, 1.015, 1],
-                    rotate: [-1.7, 1.1, -0.85, 0.45, 0],
-                    x: [0, -4, 4, -1, 0],
-                    y: [6, -2, 1, 0, 0],
-                  }}
-                  transition={{
-                    duration: 0.36,
-                    ease: 'easeOut',
-                    times: [0, 0.22, 0.5, 0.76, 1],
-                  }}
-                />
+                <MenuPreviewImage topItem={topItem} topMenuImage={topMenuImage} />
               </div>
             </div>
           </div>
